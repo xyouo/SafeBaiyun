@@ -1,4 +1,4 @@
-package cn.huacheng.safebaiyun.unlock
+﻿package cn.huacheng.safebaiyun.unlock
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -8,7 +8,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -51,7 +50,7 @@ object DataRepo {
         val oldKey = preferences.getString("key", "") ?: ""
         if (oldMac.isNotEmpty() && oldKey.isNotEmpty()) {
             val migrated = listOf(
-                Device(id = "1", name = "门禁1", mac = oldMac, key = oldKey)
+                Device(id = "1", name = "闂ㄧ1", mac = oldMac, key = oldKey)
             )
             saveDevices(migrated)
             preferences.edit { remove("mac").remove("key") }
@@ -97,7 +96,7 @@ object DataRepo {
         if (devices.isNotEmpty()) {
             devices[0] = devices[0].copy(mac = mac, key = key)
         } else {
-            devices.add(Device(id = "1", name = "门禁1", mac = mac, key = key))
+            devices.add(Device(id = "1", name = "闂ㄧ1", mac = mac, key = key))
         }
         saveDevices(devices)
     }
@@ -118,7 +117,7 @@ object DataRepo {
 
             for (element in jsonArray) {
                 try {
-                    val device = json.decodeFromJsonElement<Device>(element)
+                    val device = json.decodeFromString<Device>(element.toString())
                     anyParsed = true
                     if (existing.none { it.mac == device.mac }) {
                         existing.add(device)
@@ -126,7 +125,7 @@ object DataRepo {
                     }
                 } catch (_: Exception) {
                     try {
-                        val export = json.decodeFromJsonElement<DeviceExport>(element)
+                        val export = json.decodeFromString<DeviceExport>(element.toString())
                         anyParsed = true
                         if (existing.none { it.mac == export.mac }) {
                             existing.add(Device(
@@ -136,14 +135,14 @@ object DataRepo {
                             count++
                         }
                     } catch (_: Exception) {
-                        // 尝试字段名映射（兼容 mac1/processkey 等变体）
+                        // 灏濊瘯瀛楁鍚嶆槧灏勶紙鍏煎 mac1/processkey 绛夊彉浣擄級
                         try {
                             val obj = element.jsonObject
                             val mac = getField(obj, "mac", "MAC", "mac1", "MAC_NUM")
                             val key = getField(obj, "key", "KEY", "processkey", "PRODUCT_KEY")
                             if (mac != null && key != null) {
                                 anyParsed = true
-                                val name = getField(obj, "name", "NAME") ?: "门禁"
+                                val name = getField(obj, "name", "NAME") ?: "闂ㄧ"
                                 if (existing.none { it.mac == mac }) {
                                     existing.add(Device(
                                         id = UUID.randomUUID().toString(),
