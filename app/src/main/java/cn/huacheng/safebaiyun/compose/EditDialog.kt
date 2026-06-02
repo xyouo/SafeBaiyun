@@ -1,4 +1,4 @@
-package cn.huacheng.safebaiyun.compose
+﻿package cn.huacheng.safebaiyun.compose
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -63,7 +63,7 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
             context.contentResolver.openOutputStream(uri)?.use { out ->
                 out.write(json.toByteArray())
             }
-            Toast.makeText(context, "导出成功", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "瀵煎嚭鎴愬姛", Toast.LENGTH_SHORT).show()
             exportJson = null
         }
     }
@@ -79,9 +79,9 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
             if (count > 0) {
                 devices = DataRepo.readDevices()
                 onDevicesChanged()
-                Toast.makeText(context, "成功导入 $count 个设备", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "鎴愬姛瀵煎叆 $count 涓澶?, Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context, "没有新设备可导入", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "娌℃湁鏂拌澶囧彲瀵煎叆", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -91,7 +91,7 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         Column(modifier = Modifier.padding(bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("设备管理", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
+            Text("璁惧绠＄悊", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
 
             devices.forEach { device ->
                 Card(
@@ -108,25 +108,25 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
                             Text("Key: ${device.key}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         IconButton(onClick = { editingDevice = device; showEditSheet = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "编辑", modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Edit, contentDescription = "缂栬緫", modifier = Modifier.size(20.dp))
                         }
                         IconButton(onClick = { deleteConfirmDevice = device }) {
-                            Icon(Icons.Default.Delete, contentDescription = "删除", modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Delete, contentDescription = "鍒犻櫎", modifier = Modifier.size(20.dp))
                         }
                     }
                 }
             }
 
             if (devices.isEmpty()) {
-                Text("暂无设备，点击下方添加", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp))
+                Text("鏆傛棤璁惧锛岀偣鍑讳笅鏂规坊鍔?, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp))
             }
 
             Button(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth(),
                 onClick = { editingDevice = null; showEditSheet = true }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "添加", modifier = Modifier.size(18.dp))
-                Text("添加设备", modifier = Modifier.padding(start = 4.dp))
+                Icon(Icons.Default.Add, contentDescription = "娣诲姞", modifier = Modifier.size(18.dp))
+                Text("娣诲姞璁惧", modifier = Modifier.padding(start = 4.dp))
             }
 
             Row(
@@ -134,11 +134,11 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(modifier = Modifier.weight(1f), onClick = { importLauncher.launch(arrayOf("application/json")) }) {
-                    Text("导入配置")
+                    Text("瀵煎叆閰嶇疆")
                 }
                 if (devices.isNotEmpty()) {
                     Button(modifier = Modifier.weight(1f), onClick = { showExportDialog = true }) {
-                        Text("导出配置")
+                        Text("瀵煎嚭閰嶇疆")
                     }
                 }
             }
@@ -159,15 +159,15 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
     deleteConfirmDevice?.let { device ->
         AlertDialog(
             onDismissRequest = { deleteConfirmDevice = null },
-            title = { Text("确认删除") },
-            text = { Text("确定要删除「${device.name}」吗？") },
+            title = { Text("纭鍒犻櫎") },
+            text = { Text("纭畾瑕佸垹闄ゃ€?{device.name}銆嶅悧锛?) },
             confirmButton = { TextButton(onClick = {
                 DataRepo.deleteDevice(device.id)
                     devices = DataRepo.readDevices()
                     onDevicesChanged()
                     deleteConfirmDevice = null
-            }) { Text("删除", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { deleteConfirmDevice = null }) { Text("取消") } }
+            }) { Text("鍒犻櫎", color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { deleteConfirmDevice = null }) { Text("鍙栨秷") } }
         )
     }
 
@@ -192,12 +192,12 @@ private fun ExportDialog(devices: List<Device>, onDismiss: () -> Unit, onExport:
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("导出配置") },
+        title = { Text("瀵煎嚭閰嶇疆") },
         text = {
             Column {
                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = selectAll, onCheckedChange = { selectAll = it })
-                    Text("全选", style = MaterialTheme.typography.bodyLarge)
+                    Text("鍏ㄩ€?, style = MaterialTheme.typography.bodyLarge)
                 }
                 HorizontalDivider()
                 devices.forEach { device ->
@@ -217,9 +217,9 @@ private fun ExportDialog(devices: List<Device>, onDismiss: () -> Unit, onExport:
                     else if (selectedIds.isNotEmpty()) onExport(selectedIds.toList())
                 },
                 enabled = selectAll || selectedIds.isNotEmpty()
-            ) { Text(if (selectAll) "导出全部" else "导出选中 (${selectedIds.size})") }
+            ) { Text(if (selectAll) "瀵煎嚭鍏ㄩ儴" else "瀵煎嚭閫変腑 (${selectedIds.size})") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("鍙栨秷") } }
     )
 }
 
@@ -236,21 +236,21 @@ private fun DeviceEditSheet(device: Device?, onDismiss: () -> Unit, onSave: (Dev
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         Column(modifier = Modifier.padding(bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(if (isEdit) "编辑设备" else "添加设备", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
+            Text(if (isEdit) "缂栬緫璁惧" else "娣诲姞璁惧", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
 
             val modifier = Modifier.padding(8.dp).fillMaxWidth()
-            OutlinedTextField(modifier = modifier, value = name, onValueChange = { name = it }, label = { Text("设备名称") }, placeholder = { Text("如：大门、公司门") })
-            OutlinedTextField(modifier = modifier, value = mac, onValueChange = { mac = it }, label = { Text("MAC 地址") }, placeholder = { Text("如：12:34:56:78:9A:BC") })
-            OutlinedTextField(modifier = modifier, value = key, onValueChange = { key = it }, label = { Text("加密 Key") }, placeholder = { Text("如：123456789ABCDEFG") })
+            OutlinedTextField(modifier = modifier, value = name, onValueChange = { name = it }, label = { Text("璁惧鍚嶇О") }, placeholder = { Text("濡傦細澶ч棬銆佸叕鍙搁棬") })
+            OutlinedTextField(modifier = modifier, value = mac, onValueChange = { mac = it }, label = { Text("MAC 鍦板潃") }, placeholder = { Text("濡傦細12:34:56:78:9A:BC") })
+            OutlinedTextField(modifier = modifier, value = key, onValueChange = { key = it }, label = { Text("鍔犲瘑 Key") }, placeholder = { Text("濡傦細123456789ABCDEFG") })
 
             Button(
                 modifier = Modifier.padding(8.dp),
                 onClick = {
-                    val finalName = name.ifBlank { "门禁" }
+                    val finalName = name.ifBlank { "闂ㄧ" }
                     onSave(Device(id = device?.id ?: UUID.randomUUID().toString(), name = finalName, mac = mac, key = key))
                 },
                 enabled = mac.isNotBlank() && key.isNotBlank()
-            ) { Text(if (isEdit) "保存修改" else "添加") }
+            ) { Text(if (isEdit) "淇濆瓨淇敼" else "娣诲姞") }
         }
     }
 }

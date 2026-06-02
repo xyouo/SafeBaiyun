@@ -7,6 +7,11 @@ import cn.huacheng.safebaiyun.util.ContextHolder
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.util.UUID
 
 @Serializable
@@ -17,7 +22,6 @@ data class Device(
     val key: String
 )
 
-// 导出用，不含 id 字段
 @Serializable
 private data class DeviceExport(
     val name: String,
@@ -43,7 +47,6 @@ object DataRepo {
                 emptyList()
             }
         }
-        // 兼容旧版单设备数据，自动迁移
         val oldMac = preferences.getString("mac", "") ?: ""
         val oldKey = preferences.getString("key", "") ?: ""
         if (oldMac.isNotEmpty() && oldKey.isNotEmpty()) {
@@ -83,14 +86,12 @@ object DataRepo {
         return readDevices().find { it.id == id }
     }
 
-    // 兼容旧接口，返回第一个设备
     fun readData(): Pair<String, String> {
         val devices = readDevices()
         return if (devices.isNotEmpty()) devices.first().mac to devices.first().key
         else "" to ""
     }
 
-    // 兼容旧接口，保存为第一个设备
     fun save(mac: String, key: String) {
         val devices = readDevices().toMutableList()
         if (devices.isNotEmpty()) {
@@ -110,37 +111,67 @@ object DataRepo {
 
     fun importDevices(jsonString: String): Int {
         return try {
-            // 优先尝试带 id 的旧格式
-            val imported = json.decodeFromString<List<Device>>(jsonString)
+            val jsonArray = json.parseToJsonElement(jsonString).jsonArray
             val existing = readDevices().toMutableList()
             var count = 0
-            for (device in imported) {
-                if (existing.none { it.mac == device.mac }) {
-                    existing.add(device)
-                    count++
-                }
-            }
-            if (count > 0) saveDevices(existing)
-            count
-        } catch (e: Exception) {
-            // 兼容无 id 的新格式
-            try {
-                val simpleImported = json.decodeFromString<List<DeviceExport>>(jsonString)
-                val existing = readDevices().toMutableList()
-                var count = 0
-                for (device in simpleImported) {
+            var anyParsed = false
+
+            for (element in jsonArray) {
+                try {
+                    val device = json.decodeFromJsonElement<Device>(element)
+                    anyParsed = true
                     if (existing.none { it.mac == device.mac }) {
-                        existing.add(Device(id = UUID.randomUUID().toString(), name = device.name, mac = device.mac, key = device.key))
+                        existing.add(device)
                         count++
                     }
+                } catch (_: Exception) {
+                    try {
+                        val export = json.decodeFromJsonElement<DeviceExport>(element)
+                        anyParsed = true
+                        if (existing.none { it.mac == export.mac }) {
+                            existing.add(Device(
+                                id = UUID.randomUUID().toString(),
+                                name = export.name, mac = export.mac, key = export.key
+                            ))
+                            count++
+                        }
+                    } catch (_: Exception) {
+                        // 尝试字段名映射（兼容 mac1/processkey 等变体）
+                        try {
+                            val obj = element.jsonObject
+                            val mac = getField(obj, "mac", "MAC", "mac1", "MAC_NUM")
+                            val key = getField(obj, "key", "KEY", "processkey", "PRODUCT_KEY")
+                            if (mac != null && key != null) {
+                                anyParsed = true
+                                val name = getField(obj, "name", "NAME") ?: "门禁"
+                                if (existing.none { it.mac == mac }) {
+                                    existing.add(Device(
+                                        id = UUID.randomUUID().toString(),
+                                        name = name, mac = mac, key = key
+                                    ))
+                                    count++
+                                }
+                            }
+                        } catch (_: Exception) { }
+                    }
                 }
-                if (count > 0) saveDevices(existing)
-                count
-            } catch (e2: Exception) { 0 }
-        }
+            }
+
+            if (count > 0) saveDevices(existing)
+            if (anyParsed) count else -1
+        } catch (e: Exception) { -1 }
     }
 
-    /** -1 表示已在顶部 */
+    private fun getField(obj: JsonObject, vararg names: String): String? {
+        for (name in names) {
+            try {
+                val value = obj[name]?.jsonPrimitive?.content ?: continue
+                if (value.isNotEmpty()) return value
+            } catch (_: Exception) { continue }
+        }
+        return null
+    }
+
     fun moveDeviceUp(id: String): Int {
         val devices = readDevices().toMutableList()
         val index = devices.indexOfFirst { it.id == id }
@@ -152,7 +183,6 @@ object DataRepo {
         return index - 1
     }
 
-    /** -1 表示已在底部 */
     fun moveDeviceDown(id: String): Int {
         val devices = readDevices().toMutableList()
         val index = devices.indexOfFirst { it.id == id }

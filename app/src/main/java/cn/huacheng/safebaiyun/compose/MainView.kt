@@ -125,8 +125,7 @@ private fun DeviceListView(devices: MutableList<cn.huacheng.safebaiyun.unlock.De
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(device.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(device.mac, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(device.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                     Column {
                         if (devices.indexOf(device) > 0) {
@@ -180,4 +179,5 @@ private fun PermissionView(hasPermission: MutableState<Boolean>) {
         }
     }
 }
+
 
