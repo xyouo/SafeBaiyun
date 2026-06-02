@@ -1,4 +1,4 @@
-﻿package cn.huacheng.safebaiyun.compose
+package cn.huacheng.safebaiyun.compose
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -111,12 +110,6 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
                         IconButton(onClick = { editingDevice = device; showEditSheet = true }) {
                             Icon(Icons.Default.Edit, contentDescription = "编辑", modifier = Modifier.size(20.dp))
                         }
-                        IconButton(onClick = {
-                            exportJson = DataRepo.exportDevices(listOf(device.id))
-                            exportLauncher.launch("SafeBaiyun-${device.name}.json")
-                        }) {
-                            Icon(Icons.Default.Share, contentDescription = "导出", modifier = Modifier.size(20.dp))
-                        }
                         IconButton(onClick = { deleteConfirmDevice = device }) {
                             Icon(Icons.Default.Delete, contentDescription = "删除", modifier = Modifier.size(20.dp))
                         }
@@ -140,13 +133,13 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                Button(modifier = Modifier.weight(1f), onClick = { importLauncher.launch(arrayOf("application/json")) }) {
+                    Text("导入配置")
+                }
                 if (devices.isNotEmpty()) {
                     Button(modifier = Modifier.weight(1f), onClick = { showExportDialog = true }) {
                         Text("导出配置")
                     }
-                }
-                Button(modifier = Modifier.weight(1f), onClick = { importLauncher.launch(arrayOf("application/json")) }) {
-                    Text("导入配置")
                 }
             }
         }
@@ -159,7 +152,6 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
                             else DataRepo.addDevice(device)
                             devices = DataRepo.readDevices()
                             onDevicesChanged()
-                onDevicesChanged()
                 showEditSheet = false; editingDevice = null
             })
     }
@@ -262,4 +254,3 @@ private fun DeviceEditSheet(device: Device?, onDismiss: () -> Unit, onSave: (Dev
         }
     }
 }
-

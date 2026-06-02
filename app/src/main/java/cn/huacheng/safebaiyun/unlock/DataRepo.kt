@@ -1,4 +1,4 @@
-﻿package cn.huacheng.safebaiyun.unlock
+package cn.huacheng.safebaiyun.unlock
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -7,6 +7,7 @@ import cn.huacheng.safebaiyun.util.ContextHolder
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.util.UUID
 
 @Serializable
 data class Device(
@@ -16,9 +17,18 @@ data class Device(
     val key: String
 )
 
+// 导出用，不含 id 字段
+@Serializable
+private data class DeviceExport(
+    val name: String,
+    val mac: String,
+    val key: String
+)
+
 object DataRepo {
 
     private val json = Json { ignoreUnknownKeys = true }
+    private val exportJson = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
     private val preferences: SharedPreferences by lazy {
         ContextHolder.get().getSharedPreferences("data", Context.MODE_PRIVATE)
@@ -94,23 +104,40 @@ object DataRepo {
     fun exportDevices(deviceIds: List<String>? = null): String {
         val devices = if (deviceIds == null) readDevices()
         else readDevices().filter { it.id in deviceIds }
-        return json.encodeToString(devices)
+        val exportData = devices.map { DeviceExport(name = it.name, mac = it.mac, key = it.key) }
+        return exportJson.encodeToString(exportData)
     }
 
     fun importDevices(jsonString: String): Int {
         return try {
+            // 优先尝试带 id 的旧格式
             val imported = json.decodeFromString<List<Device>>(jsonString)
             val existing = readDevices().toMutableList()
             var count = 0
             for (device in imported) {
-                if (existing.none { it.id == device.id }) {
+                if (existing.none { it.mac == device.mac }) {
                     existing.add(device)
                     count++
                 }
             }
             if (count > 0) saveDevices(existing)
             count
-        } catch (e: Exception) { 0 }
+        } catch (e: Exception) {
+            // 兼容无 id 的新格式
+            try {
+                val simpleImported = json.decodeFromString<List<DeviceExport>>(jsonString)
+                val existing = readDevices().toMutableList()
+                var count = 0
+                for (device in simpleImported) {
+                    if (existing.none { it.mac == device.mac }) {
+                        existing.add(Device(id = UUID.randomUUID().toString(), name = device.name, mac = device.mac, key = device.key))
+                        count++
+                    }
+                }
+                if (count > 0) saveDevices(existing)
+                count
+            } catch (e2: Exception) { 0 }
+        }
     }
 
     /** -1 表示已在顶部 */
