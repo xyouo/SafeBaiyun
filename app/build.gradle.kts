@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     id("kotlinx-serialization")
@@ -12,8 +12,8 @@ android {
         applicationId = "cn.huacheng.safebaiyun"
         minSdk = 21
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = (project.findProperty("versionCode") as? String)?.toInt() ?: 2
+        versionName = (project.findProperty("versionName") as? String) ?: "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -25,10 +25,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            proguardFile(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
     }
     compileOptions {
@@ -52,7 +49,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -62,10 +58,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.glance)
-    implementation(libs.glance.material)
     implementation(libs.navigation)
-
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
