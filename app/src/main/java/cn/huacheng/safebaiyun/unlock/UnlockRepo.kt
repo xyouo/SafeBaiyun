@@ -14,7 +14,6 @@ import android.os.Build
 import android.util.Log
 import cn.huacheng.safebaiyun.util.ContextHolder
 import cn.huacheng.safebaiyun.util.LockBiz
-import cn.huacheng.safebaiyun.unlock.Device
 import cn.huacheng.safebaiyun.util.showToast
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
@@ -48,11 +47,6 @@ object UnlockRepo {
         doUnlock()
     }
 
-    fun unlock(mac: String, key: String) {
-        config = mac to key
-        doUnlock()
-    }
-
     fun unlock(device: Device) {
         config = device.mac to device.key
         doUnlock()
@@ -63,10 +57,8 @@ object UnlockRepo {
             (ContextHolder.get()
                 .getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
 
-        config = DataRepo.readData()
-
         if (!BluetoothAdapter.checkBluetoothAddress(config.first)) {
-            showToast("Mac鍦板潃鏍煎紡閿欒")
+            showToast("Mac地址格式错误")
             return
         }
         connect(bluetoothAdapter)
@@ -74,28 +66,7 @@ object UnlockRepo {
         autoDisconnectJob = GlobalScope.launch {
             delay(10000)
             if (isActive) {
-                log("10s瓒呮椂锛岃嚜鍔ㄦ柇寮€閾炬帴")
-                gatt.disconnect()
-                gatt.close()
-            }
-        }
-    }
-        val bluetoothAdapter =
-            (ContextHolder.get()
-                .getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
-
-        config = DataRepo.readData()
-
-        if (!BluetoothAdapter.checkBluetoothAddress(config.first)) {
-            showToast("Mac鍦板潃鏍煎紡閿欒")
-            return
-        }
-        connect(bluetoothAdapter)
-
-        autoDisconnectJob = GlobalScope.launch {
-            delay(10000)
-            if (isActive) {
-                log("10s瓒呮椂锛岃嚜鍔ㄦ柇寮€閾炬帴")
+                log("10s超时，自动断开连接")
                 gatt.disconnect()
                 gatt.close()
             }
@@ -119,25 +90,25 @@ object UnlockRepo {
             )
         }
 
-        log("灏濊瘯杩炴帴钃濈墮 ${this::gatt.isInitialized}")
+        log("尝试连接蓝牙 ${this::gatt.isInitialized}")
     }
 
     private val callback = object : BluetoothGattCallback() {
 
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
             super.onConnectionStateChange(gatt, status, newState)
-            log("杩炴帴鐘舵€佹敼鍙?status$status,newState$newState")
+            log("连接状态改变 status$status,newState$newState")
             if (newState == BluetoothGatt.STATE_CONNECTED) {
                 autoDisconnectJob?.cancel()
-                log("寮€濮嬫悳绱㈡湇鍔?)
+                log("开始搜索服务")
                 gatt?.discoverServices()
             }
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
             super.onServicesDiscovered(gatt, status)
-            log("鎼滅储鏈嶅姟鎴愬姛 $status")
-            log("鎼滅储鍒颁互涓嬫湇鍔★細${gatt?.services?.map { it.uuid }?.joinToString(",")}")
+            log("搜索服务成功 $status")
+            log("搜索到以下服务：${gatt?.services?.map { it.uuid }?.joinToString(",")}")
             handleService(gatt?.services?.find { it.uuid.toString() == MAGIC_SERVICE })
         }
 
@@ -147,8 +118,7 @@ object UnlockRepo {
             value: ByteArray,
             status: Int
         ) {
-            //android13浠ヤ笂璧拌繖閲?
-            log("鐗瑰緛鐮佽鍙栧洖璋?$status,${value.size}")
+            log("特征码读取回调$status,${value.size}")
             handleCharacteristicWrite(value)
         }
 
@@ -159,9 +129,8 @@ object UnlockRepo {
             status: Int
         ) {
             super.onCharacteristicRead(gatt, characteristic, status)
-            //android12鍙婁互涓嬭蛋杩欓噷
             val value = characteristic?.value ?: return
-            log("鐗瑰緛鐮佽鍙栧洖璋?$status,${value.size}")
+            log("特征码读取回调$status,${value.size}")
             handleCharacteristicWrite(value)
         }
 
@@ -171,30 +140,26 @@ object UnlockRepo {
             status: Int
         ) {
             super.onCharacteristicWrite(gatt, characteristic, status)
-            log("鐗瑰緛鐮佸啓鍏ュ洖璋?)
+            log("特征码写入回调")
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                showToast("寮€闂ㄦ垚鍔?)
+                showToast("开门成功")
             } else {
-                showToast("瀵嗛挜鍐欏叆澶辫触")
+                showToast("密钥写入失败")
             }
             gatt?.close()
         }
     }
 
-    /**
-     * 鎵惧埌瀵瑰簲鐨刢haracteristic
-     */
     private fun handleService(service: BluetoothGattService?) {
-
         if (service == null) {
             return
         }
 
-        log("寮€濮嬪鐞嗘湇鍔★紝鍏?{service.characteristics.size}涓壒寰?)
+        log("开始处理服务，共${service.characteristics.size}个特征")
         val propCharacteristics = mutableListOf<BluetoothGattCharacteristic>()
 
         service.characteristics?.forEach {
-            log("鐗瑰緛${it.uuid},prop:${it.properties}")
+            log("特征${it.uuid},prop:${it.properties}")
             val properties = it.properties
             if ((properties and 2) != 0) {
                 readableCharacteristic = it
@@ -214,7 +179,7 @@ object UnlockRepo {
     }
 
     private fun handleCharacteristics(propCharacteristics: MutableList<BluetoothGattCharacteristic>) {
-        log("寮€濮嬪鐞嗙壒寰?鍐欏叆瀵瑰簲鏁版嵁")
+        log("开始处理特征 写入对应数据")
         propCharacteristics.forEach { characteristic ->
             gatt.setCharacteristicNotification(characteristic, true)
             characteristic.descriptors.forEach {
@@ -223,34 +188,27 @@ object UnlockRepo {
                 } else if ((characteristic.properties and 32) != 0) {
                     characteristic.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE)
                 }
-
                 gatt.writeDescriptor(it)
             }
         }
 
         val result = gatt.readCharacteristic(readableCharacteristic)
-        log("鐗瑰緛鍐欏叆缁撴灉 $result")
+        log("特征写入结果 $result")
     }
 
     private fun handleCharacteristicWrite(value: ByteArray) {
-        log("寮€濮嬪啓鍏ュ瘑閽?)
+        log("开始写入密钥")
         val key = LockBiz.encryptData(value, LockBiz.hexToByteArray(config.first), config.second)
         log(key.joinToString())
         writeableCharacteristic.setValue(key)
         writeableCharacteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
         val result = gatt.writeCharacteristic(writeableCharacteristic)
-        log("瀵嗛挜鍐欏叆缁撴灉 $result")
-
+        log("密钥写入结果 $result")
     }
 
-
-    @OptIn(DelicateCoroutinesApi::class)
     private fun log(msg: String) {
-        println(msg)
-//        logList.add(msg)
-//        GlobalScope.launch {
-//            Log.e("UnlockRepo", "log: $msg")
-//            logFlow.emit(logList.toList())
-//        }
+        Log.d("UnlockRepo", msg)
+        logList.add(msg)
+        logFlow.value = logList.toList()
     }
 }
