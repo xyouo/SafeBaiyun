@@ -81,12 +81,18 @@ fun MainView(navController: NavHostController) {
                 })
             }
         }
-        if (showDeviceSheet.value) {
-            DeviceListSheet(onDismiss = {
-                showDeviceSheet.value = false
-                devices.clear()
-                devices.addAll(DataRepo.readDevices())
-            })
+                if (showDeviceSheet.value) {
+            DeviceListSheet(
+                onDevicesChanged = {
+                    devices.clear()
+                    devices.addAll(DataRepo.readDevices())
+                },
+                onDismiss = {
+                    showDeviceSheet.value = false
+                    devices.clear()
+                    devices.addAll(DataRepo.readDevices())
+                }
+            )
         }
     }
 }
@@ -174,3 +180,4 @@ private fun PermissionView(hasPermission: MutableState<Boolean>) {
         }
     }
 }
+

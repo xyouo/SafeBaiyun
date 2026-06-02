@@ -47,7 +47,7 @@ import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeviceListSheet(onDismiss: () -> Unit) {
+fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
     var devices by remember { mutableStateOf(DataRepo.readDevices()) }
     var showEditSheet by remember { mutableStateOf(false) }
     var editingDevice by remember { mutableStateOf<Device?>(null) }
@@ -79,6 +79,7 @@ fun DeviceListSheet(onDismiss: () -> Unit) {
             val count = DataRepo.importDevices(json)
             if (count > 0) {
                 devices = DataRepo.readDevices()
+                onDevicesChanged()
                 Toast.makeText(context, "成功导入 $count 个设备", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(context, "没有新设备可导入", Toast.LENGTH_SHORT).show()
@@ -154,9 +155,11 @@ fun DeviceListSheet(onDismiss: () -> Unit) {
     if (showEditSheet) {
         DeviceEditSheet(device = editingDevice, onDismiss = { showEditSheet = false; editingDevice = null },
             onSave = { device ->
-                if (editingDevice != null) DataRepo.updateDevice(device)
-                else DataRepo.addDevice(device)
-                devices = DataRepo.readDevices()
+                                            if (editingDevice != null) DataRepo.updateDevice(device)
+                            else DataRepo.addDevice(device)
+                            devices = DataRepo.readDevices()
+                            onDevicesChanged()
+                onDevicesChanged()
                 showEditSheet = false; editingDevice = null
             })
     }
@@ -168,8 +171,9 @@ fun DeviceListSheet(onDismiss: () -> Unit) {
             text = { Text("确定要删除「${device.name}」吗？") },
             confirmButton = { TextButton(onClick = {
                 DataRepo.deleteDevice(device.id)
-                devices = DataRepo.readDevices()
-                deleteConfirmDevice = null
+                    devices = DataRepo.readDevices()
+                    onDevicesChanged()
+                    deleteConfirmDevice = null
             }) { Text("删除", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { deleteConfirmDevice = null }) { Text("取消") } }
         )
@@ -258,3 +262,4 @@ private fun DeviceEditSheet(device: Device?, onDismiss: () -> Unit, onSave: (Dev
         }
     }
 }
+
