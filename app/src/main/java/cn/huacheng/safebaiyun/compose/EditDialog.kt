@@ -1,4 +1,4 @@
-﻿package cn.huacheng.safebaiyun.compose
+package cn.huacheng.safebaiyun.compose
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -75,13 +75,15 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
             val json = context.contentResolver.openInputStream(uri)?.use {
                 it.readBytes().toString(Charsets.UTF_8)
             } ?: return@rememberLauncherForActivityResult
-            val count = DataRepo.importDevices(json)
-            if (count > 0) {
-                devices = DataRepo.readDevices()
-                onDevicesChanged()
-                Toast.makeText(context, "鎴愬姛瀵煎叆 $count 涓澶?, Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "娌℃湁鏂拌澶囧彲瀵煎叆", Toast.LENGTH_SHORT).show()
+                        val count = DataRepo.importDevices(json)
+            when {
+                count > 0 -> {
+                    devices = DataRepo.readDevices()
+                    onDevicesChanged()
+                    Toast.makeText(context, "成功导入 " + count + " 个设备", Toast.LENGTH_SHORT).show()
+                }
+                count == 0 -> Toast.makeText(context, "没有新设备可导入", Toast.LENGTH_SHORT).show()
+                else -> Toast.makeText(context, "导入失败：JSON 格式无法识别", Toast.LENGTH_SHORT).show()
             }
         }
     }
