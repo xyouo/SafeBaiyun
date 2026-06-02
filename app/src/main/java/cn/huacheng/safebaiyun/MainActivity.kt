@@ -9,6 +9,7 @@ import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,41 +29,22 @@ import cn.huacheng.safebaiyun.compose.HelpView
 import cn.huacheng.safebaiyun.compose.MainView
 import cn.huacheng.safebaiyun.theme.SafeBaiyunTheme
 import cn.huacheng.safebaiyun.util.UpdateChecker
-import cn.huacheng.safebaiyun.util.UpdateInfo
+import androidx.compose.material3.ExperimentalMaterial3Api
 
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             SafeBaiyunTheme {
-                var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+                var updateInfo by remember { mutableStateOf<cn.huacheng.safebaiyun.util.UpdateInfo?>(null) }
                 val context = LocalContext.current
+                val navController = rememberNavController()
 
                 LaunchedEffect(Unit) {
                     updateInfo = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
                 }
 
-                updateInfo?.let { info ->
-                    if (info.hasUpdate) {
-                        AlertDialog(
-                            onDismissRequest = { updateInfo = null },
-                            title = { Text("鍙戠幇鏂扮増鏈?) },
-                            text = { Text("鏂扮増鏈?${info.latestVersion} 宸插彂甯冿紝鏄惁绔嬪嵆鏇存柊锛?) },
-                            confirmButton = {
-                                TextButton(onClick = {
-                                    val url = if (info.downloadUrl.isNotEmpty()) info.downloadUrl else "https://github.com/xyouo/SafeBaiyun/releases/latest"
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)));
-                                    updateInfo = null
-                                }) { Text("鏇存柊") }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { updateInfo = null }) { Text("绋嶅悗") }
-                            }
-                        )
-                    }
-                }
-
-                val navController = rememberNavController()
                 Surface(
                     modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
@@ -74,6 +56,25 @@ class MainActivity : ComponentActivity() {
                             HelpView(navController)
                         }
                     }
+                }
+
+                if (updateInfo?.hasUpdate == true) {
+                    val info = updateInfo!!
+                    AlertDialog(
+                        onDismissRequest = { updateInfo = null },
+                        title = { Text("鍙戠幇鏂扮増鏈?) },
+                        text = { Text("鏂扮増鏈?" + info.latestVersion + " 宸插彂甯冿紝鏄惁绔嬪嵆鏇存柊锛?) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                val url = if (info.downloadUrl.isNotEmpty()) info.downloadUrl else "https://github.com/xyouo/SafeBaiyun/releases/latest"
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                updateInfo = null
+                            }) { Text("鏇存柊") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { updateInfo = null }) { Text("绋嶅悗") }
+                        }
+                    )
                 }
             }
         }
