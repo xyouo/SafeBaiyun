@@ -63,7 +63,7 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
             context.contentResolver.openOutputStream(uri)?.use { out ->
                 out.write(json.toByteArray())
             }
-            Toast.makeText(context, "瀵煎嚭鎴愬姛", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "閻庣數鍘ч崵顓㈠箣閹邦剙顫?, Toast.LENGTH_SHORT).show()
             exportJson = null
         }
     }
@@ -75,7 +75,7 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
             val json = context.contentResolver.openInputStream(uri)?.use {
                 it.readBytes().toString(Charsets.UTF_8)
             } ?: return@rememberLauncherForActivityResult
-                        val count = DataRepo.importDevices(json)
+            val count = DataRepo.importDevices(json)
             when {
                 count > 0 -> {
                     devices = DataRepo.readDevices()
@@ -93,7 +93,7 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         Column(modifier = Modifier.padding(bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("璁惧绠＄悊", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
+            Text("閻犱焦鍎抽ˇ顒傜不閿涘嫭鍊?, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
 
             devices.forEach { device ->
                 Card(
@@ -110,25 +110,25 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
                             Text("Key: ${device.key}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         IconButton(onClick = { editingDevice = device; showEditSheet = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "缂栬緫", modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Edit, contentDescription = "缂傚倹鐗炵欢?, modifier = Modifier.size(20.dp))
                         }
                         IconButton(onClick = { deleteConfirmDevice = device }) {
-                            Icon(Icons.Default.Delete, contentDescription = "鍒犻櫎", modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Delete, contentDescription = "闁告帞濞€濞?, modifier = Modifier.size(20.dp))
                         }
                     }
                 }
             }
 
             if (devices.isEmpty()) {
-                Text("鏆傛棤璁惧锛岀偣鍑讳笅鏂规坊鍔?, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp))
+                Text("闁哄棗鍊瑰Λ銈囨媼閹屾У闁挎稑鐬奸崑锝夊礄鐠佸磭鐟撻柡鍌濐潐閸у﹪宕?, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp))
             }
 
             Button(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth(),
                 onClick = { editingDevice = null; showEditSheet = true }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "娣诲姞", modifier = Modifier.size(18.dp))
-                Text("娣诲姞璁惧", modifier = Modifier.padding(start = 4.dp))
+                Icon(Icons.Default.Add, contentDescription = "婵烇綀顕ф慨?, modifier = Modifier.size(18.dp))
+                Text("婵烇綀顕ф慨鐐垫媼閹屾У", modifier = Modifier.padding(start = 4.dp))
             }
 
             Row(
@@ -136,11 +136,11 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(modifier = Modifier.weight(1f), onClick = { importLauncher.launch(arrayOf("application/json")) }) {
-                    Text("瀵煎叆閰嶇疆")
+                    Text("閻庣數鍘ч崣鍡涙煀瀹ュ洨鏋?)
                 }
                 if (devices.isNotEmpty()) {
                     Button(modifier = Modifier.weight(1f), onClick = { showExportDialog = true }) {
-                        Text("瀵煎嚭閰嶇疆")
+                        Text("閻庣數鍘ч崵顓㈡煀瀹ュ洨鏋?)
                     }
                 }
             }
@@ -161,15 +161,15 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
     deleteConfirmDevice?.let { device ->
         AlertDialog(
             onDismissRequest = { deleteConfirmDevice = null },
-            title = { Text("纭鍒犻櫎") },
-            text = { Text("纭畾瑕佸垹闄ゃ€?{device.name}銆嶅悧锛?) },
+            title = { Text("缁绢収鍠涢濠氬礆閻樼粯鐝?) },
+            text = { Text("缁绢収鍠栭悾鍓ф啺娴ｇ鐏╅梻鍕╁€戦埀?{device.name}闁靛棗绉撮幃褔鏁?) },
             confirmButton = { TextButton(onClick = {
                 DataRepo.deleteDevice(device.id)
                     devices = DataRepo.readDevices()
                     onDevicesChanged()
                     deleteConfirmDevice = null
-            }) { Text("鍒犻櫎", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { deleteConfirmDevice = null }) { Text("鍙栨秷") } }
+            }) { Text("闁告帞濞€濞?, color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { deleteConfirmDevice = null }) { Text("闁告瑦鐗楃粔?) } }
         )
     }
 
@@ -194,12 +194,12 @@ private fun ExportDialog(devices: List<Device>, onDismiss: () -> Unit, onExport:
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("瀵煎嚭閰嶇疆") },
+        title = { Text("閻庣數鍘ч崵顓㈡煀瀹ュ洨鏋?) },
         text = {
             Column {
                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = selectAll, onCheckedChange = { selectAll = it })
-                    Text("鍏ㄩ€?, style = MaterialTheme.typography.bodyLarge)
+                    Text("闁稿繈鍔戦埀?, style = MaterialTheme.typography.bodyLarge)
                 }
                 HorizontalDivider()
                 devices.forEach { device ->
@@ -219,9 +219,9 @@ private fun ExportDialog(devices: List<Device>, onDismiss: () -> Unit, onExport:
                     else if (selectedIds.isNotEmpty()) onExport(selectedIds.toList())
                 },
                 enabled = selectAll || selectedIds.isNotEmpty()
-            ) { Text(if (selectAll) "瀵煎嚭鍏ㄩ儴" else "瀵煎嚭閫変腑 (${selectedIds.size})") }
+            ) { Text(if (selectAll) "閻庣數鍘ч崵顓㈠礂閵娾晛鍔? else "閻庣數鍘ч崵顓㈡焻婢跺鍘?(${selectedIds.size})") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("鍙栨秷") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("闁告瑦鐗楃粔?) } }
     )
 }
 
@@ -238,21 +238,21 @@ private fun DeviceEditSheet(device: Device?, onDismiss: () -> Unit, onSave: (Dev
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         Column(modifier = Modifier.padding(bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(if (isEdit) "缂栬緫璁惧" else "娣诲姞璁惧", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
+            Text(if (isEdit) "缂傚倹鐗炵欢顐ゆ媼閹屾У" else "婵烇綀顕ф慨鐐垫媼閹屾У", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
 
             val modifier = Modifier.padding(8.dp).fillMaxWidth()
-            OutlinedTextField(modifier = modifier, value = name, onValueChange = { name = it }, label = { Text("璁惧鍚嶇О") }, placeholder = { Text("濡傦細澶ч棬銆佸叕鍙搁棬") })
-            OutlinedTextField(modifier = modifier, value = mac, onValueChange = { mac = it }, label = { Text("MAC 鍦板潃") }, placeholder = { Text("濡傦細12:34:56:78:9A:BC") })
-            OutlinedTextField(modifier = modifier, value = key, onValueChange = { key = it }, label = { Text("鍔犲瘑 Key") }, placeholder = { Text("濡傦細123456789ABCDEFG") })
+            OutlinedTextField(modifier = modifier, value = name, onValueChange = { name = it }, label = { Text("閻犱焦鍎抽ˇ顒勫触瀹ュ泦?) }, placeholder = { Text("濠碘€冲亰缁辩増寰勮濡剟濡存担绋垮絾闁告瑦鎮傚Λ?) })
+            OutlinedTextField(modifier = modifier, value = mac, onValueChange = { mac = it }, label = { Text("MAC 闁革附婢樺?) }, placeholder = { Text("濠碘€冲亰缁?2:34:56:78:9A:BC") })
+            OutlinedTextField(modifier = modifier, value = key, onValueChange = { key = it }, label = { Text("闁告梻濮撮惁?Key") }, placeholder = { Text("濠碘€冲亰缁?23456789ABCDEFG") })
 
             Button(
                 modifier = Modifier.padding(8.dp),
                 onClick = {
-                    val finalName = name.ifBlank { "闂ㄧ" }
+                    val finalName = name.ifBlank { "闂傚倶鍔庨々? }
                     onSave(Device(id = device?.id ?: UUID.randomUUID().toString(), name = finalName, mac = mac, key = key))
                 },
                 enabled = mac.isNotBlank() && key.isNotBlank()
-            ) { Text(if (isEdit) "淇濆瓨淇敼" else "娣诲姞") }
+            ) { Text(if (isEdit) "濞ｅ洦绻傞悺銊︾┍椤旇姤鏆? else "婵烇綀顕ф慨?) }
         }
     }
 }

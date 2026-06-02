@@ -38,13 +38,6 @@ jobs:
           echo "versionName=2.0-${TIMESTAMP}" >> $GITHUB_OUTPUT
           echo "ver=2.0-${TIMESTAMP}" >> $GITHUB_OUTPUT
 
-      - name: Delete old v2.0 release and tag
-        run: |
-          gh release delete v2.0 --yes -R ${{ github.repository }} 2>/dev/null || true
-          gh api -X DELETE repos/${{ github.repository }}/git/refs/tags/v2.0 2>/dev/null || true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build Debug APK
         run: ./gradlew assembleDebug -PversionCode=${{ steps.version.outputs.versionCode }} -PversionName=${{ steps.version.outputs.versionName }}
 
@@ -52,13 +45,9 @@ jobs:
         run: |
           mv app/build/outputs/apk/debug/app-debug.apk "app/build/outputs/apk/debug/SafeBaiyun-${{ steps.version.outputs.ver }}.apk"
 
-      - name: Create Release & Upload APKs
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v2.0
-          name: v2.0
-          body: "SafeBaiyun ${{ steps.version.outputs.ver }}"
-          files: |
-            app/build/outputs/apk/debug/*.apk
-          generate_release_notes: false
-          fail_on_unmatched_files: false
+      - name: Upload APK to v2.0 release
+        run: |
+          gh release upload v2.0 app/build/outputs/apk/debug/SafeBaiyun-${{ steps.version.outputs.ver }}.apk -R ${{ github.repository }} 2>/dev/null || \
+          gh release create v2.0 app/build/outputs/apk/debug/SafeBaiyun-${{ steps.version.outputs.ver }}.apk -R ${{ github.repository }} --title "v2.0" --notes "SafeBaiyun ${{ steps.version.outputs.ver }}" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
