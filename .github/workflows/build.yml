@@ -38,9 +38,9 @@ jobs:
           echo "versionName=2.0-${TIMESTAMP}" >> $GITHUB_OUTPUT
           echo "ver=2.0-${TIMESTAMP}" >> $GITHUB_OUTPUT
 
-      - name: Delete old v2.0 release
+      - name: Delete old v2.0 release and tag
         run: |
-                    gh release delete v2.0 --yes -R ${{ github.repository }} 2>/dev/null || true
+          gh release delete v2.0 --yes -R ${{ github.repository }} 2>/dev/null || true
           gh api -X DELETE repos/${{ github.repository }}/git/refs/tags/v2.0 2>/dev/null || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
