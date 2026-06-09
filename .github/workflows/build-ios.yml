@@ -1,0 +1,57 @@
+﻿name: Build iOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ ios ]
+
+concurrency:
+  group: build-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate project
+        run: |
+          brew install xcodegen
+          cd SafeBaiyun-iOS
+          xcodegen generate --spec project.yml
+          echo "=== Project generated ==="
+
+      - name: Get version
+        id: version
+        run: echo "ver=2.0-$(date -u +%Y%m%d%H%M)" >> $GITHUB_OUTPUT
+
+      - name: Build iOS app
+        run: |
+          cd SafeBaiyun-iOS
+          xcodebuild -project SafeBaiyun.xcodeproj -scheme SafeBaiyun -sdk iphoneos -configuration Release CONFIGURATION_BUILD_DIR=build CODE_SIGNING_ALLOWED=NO
+
+      - name: Package IPA
+        id: ipa
+        run: |
+          if [ -d "SafeBaiyun-iOS/build/SafeBaiyun.app" ]; then
+            mkdir -p Payload && cp -r SafeBaiyun-iOS/build/SafeBaiyun.app Payload/
+            ipa_name="SafeBaiyun-iOS-${{ steps.version.outputs.ver }}.ipa"
+            zip -r "$ipa_name" Payload/
+            echo "IPA created: $ipa_name"
+            echo "path=$ipa_name" >> $GITHUB_OUTPUT
+          else
+            echo "SafeBaiyun-iOS/build/SafeBaiyun.app NOT FOUND"
+            ls -la SafeBaiyun-iOS/build/ 2>/dev/null || true
+          fi
+
+      - name: Upload IPA to Release
+        if: steps.ipa.outputs.path != ''
+        run: |
+          gh release upload v2.0 "${{ steps.ipa.outputs.path }}" -R ${{ github.repository }} --clobber 2>/dev/null || \
+          gh release create v2.0 "${{ steps.ipa.outputs.path }}" -R ${{ github.repository }} --title "v2.0" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
