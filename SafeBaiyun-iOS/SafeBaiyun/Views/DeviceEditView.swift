@@ -3,6 +3,7 @@ import SwiftUI
 struct DeviceEditView: View {
     let device: Device?
     @ObservedObject var viewModel: DeviceViewModel
+    var wrapsNavigation = true
     @Environment(\.presentationMode) private var presentationMode
 
     @State private var name = ""
@@ -15,39 +16,49 @@ struct DeviceEditView: View {
     }
 
     var body: some View {
-        NavigationView {
-            List {
-                Section(header: Text("设备信息")) {
-                    TextField("设备名称", text: $name)
-                    TextField("MAC 地址，如 12:34:56:78:9A:BC", text: $mac)
-                        .autocapitalization(.allCharacters)
-                        .disableAutocorrection(true)
-                    TextField("加密 Key，如 1234567890ABCDEF", text: $key)
-                        .autocapitalization(.allCharacters)
-                        .disableAutocorrection(true)
+        Group {
+            if wrapsNavigation {
+                NavigationView {
+                    content
                 }
-            }
-            .listStyle(.insetGrouped)
-            .navigationTitle(isNew ? "添加设备" : "编辑设备")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") { presentationMode.wrappedValue.dismiss() }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(isNew ? "添加" : "保存") { save() }
-                        .disabled(!canSave)
-                }
-            }
-            .onAppear {
-                if let d = device {
-                    name = d.name
-                    mac = d.mac
-                    key = d.key
-                }
+                .navigationViewStyle(StackNavigationViewStyle())
+            } else {
+                content
             }
         }
-        .navigationViewStyle(StackNavigationViewStyle())
+    }
+
+    private var content: some View {
+        List {
+            Section(header: Text("设备信息")) {
+                TextField("设备名称", text: $name)
+                TextField("MAC 地址，如 12:34:56:78:9A:BC", text: $mac)
+                    .autocapitalization(.allCharacters)
+                    .disableAutocorrection(true)
+                TextField("加密 Key，如 1234567890ABCDEF", text: $key)
+                    .autocapitalization(.allCharacters)
+                    .disableAutocorrection(true)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(isNew ? "添加设备" : "编辑设备")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("取消") { presentationMode.wrappedValue.dismiss() }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(isNew ? "添加" : "保存") { save() }
+                    .disabled(!canSave)
+            }
+        }
+        .onAppear {
+            if let d = device {
+                name = d.name
+                mac = d.mac
+                key = d.key
+            }
+        }
     }
 
     private func save() {
