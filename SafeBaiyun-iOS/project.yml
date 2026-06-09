@@ -1,0 +1,22 @@
+﻿name: SafeBaiyun
+options:
+  bundleIdPrefix: cn.huacheng
+  deploymentTarget:
+    iOS: "14.0"
+settings:
+  base:
+    INFOPLIST_FILE: SafeBaiyun/Info.plist
+    PRODUCT_BUNDLE_IDENTIFIER: cn.huacheng.safebaiyun
+targets:
+  SafeBaiyun:
+    type: application
+    platform: iOS
+    sources:
+      - path: SafeBaiyun
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: cn.huacheng.safebaiyun
+      INFOPLIST_FILE: SafeBaiyun/Info.plist
+      CODE_SIGN_STYLE: Manual
+      CODE_SIGNING_REQUIRED: NO
+      CODE_SIGNING_ALLOWED: NO
+      SWIFT_OBJC_BRIDGING_HEADER: SafeBaiyun/SafeBaiyun-Bridging-Header.h
