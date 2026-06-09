@@ -1,0 +1,75 @@
+name: Build iOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ ios ]
+    paths:
+      - ".github/workflows/build-ios.yml"
+      - "SafeBaiyun-iOS/**"
+
+concurrency:
+  group: build-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+
+      - name: Generate Xcode project
+        run: xcodegen generate --spec SafeBaiyun-iOS/project.yml
+
+      - name: Get version
+        id: version
+        run: echo "ver=2.0-$(date -u +%Y%m%d%H%M)" >> "$GITHUB_OUTPUT"
+
+      - name: Build app
+        run: |
+          xcodebuild \
+            -project SafeBaiyun-iOS/SafeBaiyun.xcodeproj \
+            -scheme SafeBaiyun \
+            -sdk iphoneos \
+            -configuration Release \
+            CONFIGURATION_BUILD_DIR="$PWD/build/ios" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package IPA
+        id: ipa
+        run: |
+          app_path="build/ios/SafeBaiyun.app"
+          ipa_name="SafeBaiyun-iOS-${{ steps.version.outputs.ver }}.ipa"
+          test -d "$app_path"
+          rm -rf Payload
+          mkdir -p Payload
+          cp -R "$app_path" Payload/
+          zip -qry "$ipa_name" Payload
+          echo "path=$ipa_name" >> "$GITHUB_OUTPUT"
+
+      - name: Upload IPA to v2.0 release
+        run: |
+          gh release view v2.0 -R "${{ github.repository }}" >/dev/null 2>&1 || \
+            gh release create v2.0 -R "${{ github.repository }}" --title "v2.0" --notes "SafeBaiyun v2.0"
+          gh release upload v2.0 "${{ steps.ipa.outputs.path }}" -R "${{ github.repository }}" --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Keep latest iOS IPA asset
+        run: |
+          gh release view v2.0 -R "${{ github.repository }}" --json assets \
+            --jq '.assets | map(select(.name | test("^SafeBaiyun-iOS-.*\\.ipa$"))) | sort_by(.createdAt) | reverse | .[1:] | .[].name' \
+            | while read -r asset; do
+                [ -n "$asset" ] && gh release delete-asset v2.0 "$asset" -R "${{ github.repository }}" -y
+              done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
