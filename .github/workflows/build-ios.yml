@@ -17,9 +17,13 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: write
+    env:
+      RELEASE_REF: 8712e871ebbc70467d5b853254140e8905928075
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install XcodeGen
         run: |
@@ -27,17 +31,22 @@ jobs:
             brew install xcodegen
           fi
 
-      - name: Generate Xcode project
-        run: xcodegen generate --spec SafeBaiyun-iOS/project.yml
-
       - name: Get version
         id: version
         run: echo "ver=2.0-$(date -u +%s)" >> "$GITHUB_OUTPUT"
 
+      - name: Prepare Release source
+        run: |
+          git worktree add release-source "$RELEASE_REF"
+          xcodegen generate --spec release-source/SafeBaiyun-iOS/project.yml
+
+      - name: Generate Debug project
+        run: xcodegen generate --spec SafeBaiyun-iOS/project.yml
+
       - name: Build Release app
         run: |
           xcodebuild \
-            -project SafeBaiyun-iOS/SafeBaiyun.xcodeproj \
+            -project release-source/SafeBaiyun-iOS/SafeBaiyun.xcodeproj \
             -scheme SafeBaiyun \
             -sdk iphoneos \
             -configuration Release \
