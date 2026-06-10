@@ -2,7 +2,7 @@
 options:
   bundleIdPrefix: cn.huacheng
   deploymentTarget:
-    iOS: "14.0"
+    iOS: "15.0"
 settings:
   base:
     INFOPLIST_FILE: SafeBaiyun/Info.plist
