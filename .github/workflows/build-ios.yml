@@ -18,7 +18,7 @@ jobs:
     permissions:
       contents: write
     env:
-      RELEASE_REF: 8712e871ebbc70467d5b853254140e8905928075
+      RELEASE_REF: 51485c160745f032e59b1d82421a349621dc0d9f
 
     steps:
       - uses: actions/checkout@v4
