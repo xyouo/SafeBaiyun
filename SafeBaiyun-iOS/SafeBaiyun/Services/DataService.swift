@@ -5,7 +5,7 @@ class DataService {
 
     private let defaults = UserDefaults.standard
     private let devicesKey = "devices"
-    private let cachedPeripheralPrefix = "cachedPeripheral."
+    private let cachedPeripheralPrefix = "cachedPeripheral.v2."
 
     func readDevices() -> [Device] {
         guard let data = defaults.data(forKey: devicesKey) else { return [] }

@@ -8,9 +8,13 @@ class BluetoothService: NSObject, ObservableObject {
         let peripheral: CBPeripheral
         let rssi: Int
         let advertisesMagicService: Bool
+        let advertisesDoorDataService: Bool
+        let nameLooksLikeDoor: Bool
+        let isCached: Bool
     }
 
     private let magicService = CBUUID(string: "14839AC4-7D7E-415C-9A42-167340CF2339")
+    private let doorDataService = CBUUID(string: "0734594A-A8E7-4B1A-A6B1-CD5243059A57")
     private var centralManager: CBCentralManager!
     private var peripheral: CBPeripheral?
     private var writeChar: CBCharacteristic?
@@ -24,6 +28,7 @@ class BluetoothService: NSObject, ObservableObject {
     private var candidateWorkItem: DispatchWorkItem?
     private var discoveredIds = Set<UUID>()
     private var candidates: [Candidate] = []
+    private var cachedPeripheralId: UUID?
 
     @Published var isUnlocking = false
     @Published var statusMessage = ""
@@ -49,17 +54,11 @@ class BluetoothService: NSObject, ObservableObject {
             return
         }
 
-        if let cachedId = DataService.shared.cachedPeripheralId(for: device.id) {
-            let cached = centralManager.retrievePeripherals(withIdentifiers: [cachedId])
-            if let cachedPeripheral = cached.first {
-                log("命中上次成功设备缓存: \(cachedId.uuidString)，优先连接")
-                candidates.append(Candidate(peripheral: cachedPeripheral, rssi: 0, advertisesMagicService: true))
-                connectNextCandidate()
-            } else {
-                log("上次成功设备缓存不可用: \(cachedId.uuidString)，回退扫描")
-            }
+        cachedPeripheralId = DataService.shared.cachedPeripheralId(for: device.id)
+        if let cachedId = cachedPeripheralId {
+            log("存在上次写入成功的 iOS 外设 UUID: \(cachedId.uuidString)，扫描到它时会优先连接")
         } else {
-            log("没有上次成功设备缓存，开始扫描")
+            log("没有缓存的 iOS 外设 UUID，开始扫描")
         }
 
         centralManager.scanForPeripherals(
@@ -92,6 +91,7 @@ class BluetoothService: NSObject, ObservableObject {
         notifyChars = []
         discoveredIds.removeAll()
         candidates.removeAll()
+        cachedPeripheralId = nil
         if let peripheral = peripheral {
             log("重置连接，取消当前设备: \(describe(peripheral))")
             centralManager?.cancelPeripheralConnection(peripheral)
@@ -125,11 +125,29 @@ class BluetoothService: NSObject, ObservableObject {
         let services = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] ?? []
         let localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? "-"
         let advertisesMagicService = services.contains(magicService)
-        candidates.append(Candidate(peripheral: peripheral, rssi: rssi, advertisesMagicService: advertisesMagicService))
-        log("发现候选: \(describe(peripheral)), name=\(localName), rssi=\(rssi), magic=\(advertisesMagicService), services=\(services.map { $0.uuidString }.joined(separator: ","))")
+        let advertisesDoorDataService = services.contains(doorDataService)
+        let displayName = peripheral.name ?? localName
+        let nameLooksLikeDoor = displayName.uppercased().hasPrefix("BY")
+        let isCached = peripheral.identifier == cachedPeripheralId
+        let isLikelyDoor = isCached || advertisesMagicService || advertisesDoorDataService || nameLooksLikeDoor
+        log("发现设备: \(describe(peripheral)), name=\(localName), rssi=\(rssi), magic=\(advertisesMagicService), doorData=\(advertisesDoorDataService), byName=\(nameLooksLikeDoor), cached=\(isCached), services=\(services.map { $0.uuidString }.joined(separator: ","))")
 
-        if advertisesMagicService {
-            log("候选广播了门禁服务，立即尝试连接")
+        guard isLikelyDoor else {
+            log("忽略非门禁候选: \(describe(peripheral))")
+            return
+        }
+
+        candidates.append(Candidate(
+            peripheral: peripheral,
+            rssi: rssi,
+            advertisesMagicService: advertisesMagicService,
+            advertisesDoorDataService: advertisesDoorDataService,
+            nameLooksLikeDoor: nameLooksLikeDoor,
+            isCached: isCached
+        ))
+
+        if advertisesMagicService || advertisesDoorDataService || isCached {
+            log(isCached ? "扫描到了缓存外设，优先尝试连接" : "发现门禁广播特征，立即尝试连接")
             scanSettleWorkItem?.cancel()
             scanSettleWorkItem = nil
             connectNextCandidate()
@@ -154,8 +172,17 @@ class BluetoothService: NSObject, ObservableObject {
         candidateWorkItem = nil
 
         candidates.sort {
+            if $0.isCached != $1.isCached {
+                return $0.isCached && !$1.isCached
+            }
             if $0.advertisesMagicService != $1.advertisesMagicService {
                 return $0.advertisesMagicService && !$1.advertisesMagicService
+            }
+            if $0.advertisesDoorDataService != $1.advertisesDoorDataService {
+                return $0.advertisesDoorDataService && !$1.advertisesDoorDataService
+            }
+            if $0.nameLooksLikeDoor != $1.nameLooksLikeDoor {
+                return $0.nameLooksLikeDoor && !$1.nameLooksLikeDoor
             }
             return $0.rssi > $1.rssi
         }
@@ -324,11 +351,8 @@ extension BluetoothService: CBPeripheralDelegate {
         peripheral.writeValue(Data(encrypted), for: writeChar, type: writeType)
         if writeType == .withoutResponse {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                if let device = self?.currentDevice {
-                    DataService.shared.saveCachedPeripheralId(peripheral.identifier, for: device.id)
-                    self?.log("已缓存成功设备: \(peripheral.identifier.uuidString)")
-                }
-                self?.finish(true, message: "开门指令已发送")
+                self?.log("指令已发送，但 writeWithoutResponse 没有系统写入确认，不更新缓存")
+                self?.finish(true, message: "指令已发送")
             }
         }
     }
@@ -337,9 +361,9 @@ extension BluetoothService: CBPeripheralDelegate {
         if error == nil {
             if let device = currentDevice {
                 DataService.shared.saveCachedPeripheralId(peripheral.identifier, for: device.id)
-                log("写入成功，已缓存成功设备: \(peripheral.identifier.uuidString)")
+                log("蓝牙写入成功，已缓存 iOS 外设 UUID: \(peripheral.identifier.uuidString)。这只代表指令写入成功，不代表门禁一定已开门")
             }
-            finish(true, message: "开门成功")
+            finish(true, message: "指令已发送")
         } else {
             log("写入失败: \(error?.localizedDescription ?? "-")")
             finish(false, message: "开门失败: \(error?.localizedDescription ?? "未知错误")")

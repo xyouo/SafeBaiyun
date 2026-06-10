@@ -83,7 +83,7 @@ struct DeviceListView: View {
     }
 
     private func showUnlockResult(_ message: String) {
-        let isSuccess = message.contains("成功") || message.contains("已发送")
+        let isSuccess = message.contains("已发送")
         withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
             unlockOverlay = isSuccess ? .success(message) : .failure(message)
         }
@@ -110,7 +110,7 @@ struct UnlockOverlayView: View {
         case .opening:
             return "开门中"
         case .success:
-            return "已开门"
+            return "已发送"
         case .failure:
             return "未开门"
         }
