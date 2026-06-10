@@ -9,7 +9,7 @@
 ### 方式一：Xcode 构建（自签/证书签）
 
 1. 打开 Xcode，创建新的 iOS App 项目
-2. 项目名称：SafeBaiyun，界面：SwiftUI，支持最低 iOS 14.0
+2. 项目名称：SafeBaiyun，界面：SwiftUI，支持最低 iOS 15.0
 3. 将 `SafeBaiyun/` 目录下的所有 Swift 文件添加到项目中
 4. 将 `Info.plist` 替换或合并到项目配置中
 5. 配置签名（个人 Apple ID 或开发者证书）
@@ -33,7 +33,7 @@
 
 ## 技术说明
 
-- 最低支持 iOS 14.0
+- 最低支持 iOS 15.0
 - 使用 CoreBluetooth 连接门禁
 - 数据保存在本地 UserDefaults
 - 通信协议与 Android 版完全兼容（Service UUID: `14839AC4-7D7E-415C-9A42-167340CF2339`）

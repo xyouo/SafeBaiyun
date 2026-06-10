@@ -4,17 +4,29 @@ import UIKit
 struct DebugLogView: View {
     @ObservedObject private var logStore = DebugLogStore.shared
     @Environment(\.presentationMode) private var presentationMode
-    @State private var exportURL: URL?
-    @State private var showExportSheet = false
+    @State private var exportItem: ExportItem?
 
     var body: some View {
         NavigationView {
-            ScrollView {
-                Text(logStore.entries.isEmpty ? "暂无日志" : logStore.entries.joined(separator: "\n"))
-                    .font(.system(size: 12, weight: .regular, design: .monospaced))
-                    .foregroundColor(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
+            VStack(spacing: 0) {
+                Picker("日志", selection: $logStore.selectedSessionId) {
+                    ForEach(logStore.sessions) { session in
+                        Text(session.title).tag(session.id)
+                    }
+                }
+                .pickerStyle(MenuPickerStyle())
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+
+                Divider()
+
+                ScrollView {
+                    Text(logStore.entries.isEmpty ? "暂无日志" : logStore.entries.joined(separator: "\n"))
+                        .font(.system(size: 12, weight: .regular, design: .monospaced))
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                }
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("调试日志")
@@ -32,35 +44,30 @@ struct DebugLogView: View {
                             UIPasteboard.general.string = logStore.entries.joined(separator: "\n")
                         }
                         Button("清空") {
-                            logStore.clear()
+                            logStore.clearSelectedSession()
                         }
                     }
                 }
             }
-            .sheet(isPresented: $showExportSheet) {
-                if let exportURL = exportURL {
-                    ActivityView(activityItems: [exportURL])
-                }
+            .sheet(item: $exportItem) { item in
+                ActivityView(activityItems: [item.url])
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }
 
     private func exportLog() {
-        let text = logStore.entries.isEmpty ? "暂无日志\n" : logStore.entries.joined(separator: "\n")
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd-HHmmss"
-        let fileName = "SafeBaiyun-log-\(formatter.string(from: Date())).txt"
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-
-        do {
-            try text.write(to: url, atomically: true, encoding: .utf8)
-            exportURL = url
-            showExportSheet = true
-        } catch {
-            DebugLogStore.shared.append("导出日志失败: \(error.localizedDescription)")
+        guard let url = logStore.exportURLForSelectedSession() else {
+            DebugLogStore.shared.append("导出日志失败: 未找到当前日志文件")
+            return
         }
+        exportItem = ExportItem(url: url)
     }
+}
+
+struct ExportItem: Identifiable {
+    let url: URL
+    var id: String { url.path }
 }
 
 struct ActivityView: UIViewControllerRepresentable {

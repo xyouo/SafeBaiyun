@@ -2,11 +2,8 @@ import SwiftUI
 
 struct DeviceListView: View {
     @StateObject private var viewModel = DeviceViewModel()
-    @State private var showManage = false
+    @State private var activeSheet: MainSheet?
     @State private var unlockOverlay: UnlockOverlayState?
-    #if DEBUG
-    @State private var showDebugLog = false
-    #endif
 
     var body: some View {
         NavigationView {
@@ -47,26 +44,26 @@ struct DeviceListView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 14) {
                         #if DEBUG
-                        Button(action: { showDebugLog = true }) {
+                        Button(action: { activeSheet = .debugLog }) {
                             Image(systemName: "doc.text.magnifyingglass")
                                 .font(.body.weight(.medium))
                         }
                         #endif
-                        Button(action: { showManage = true }) {
+                        Button(action: { activeSheet = .manage }) {
                             Image(systemName: "gearshape")
                                 .font(.body.weight(.medium))
                         }
                     }
                 }
             }
-            .sheet(isPresented: $showManage, onDismiss: viewModel.loadDevices) {
-                DeviceManageView(viewModel: viewModel)
+            .sheet(item: $activeSheet, onDismiss: viewModel.loadDevices) { sheet in
+                switch sheet {
+                case .manage:
+                    DeviceManageView(viewModel: viewModel)
+                case .debugLog:
+                    DebugLogView()
+                }
             }
-            #if DEBUG
-            .sheet(isPresented: $showDebugLog) {
-                DebugLogView()
-            }
-            #endif
             .onReceive(viewModel.$isUnlocking) { isUnlocking in
                 if isUnlocking {
                     withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
@@ -94,6 +91,13 @@ struct DeviceListView: View {
             }
         }
     }
+}
+
+enum MainSheet: String, Identifiable {
+    case manage
+    case debugLog
+
+    var id: String { rawValue }
 }
 
 enum UnlockOverlayState: Equatable {
