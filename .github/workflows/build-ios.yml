@@ -18,7 +18,7 @@ jobs:
     permissions:
       contents: write
     env:
-      RELEASE_REF: 51485c160745f032e59b1d82421a349621dc0d9f
+      RELEASE_REF: ios-stable
 
     steps:
       - uses: actions/checkout@v4
