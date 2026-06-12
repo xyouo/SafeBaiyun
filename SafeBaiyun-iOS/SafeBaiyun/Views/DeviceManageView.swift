@@ -1,9 +1,23 @@
 import SwiftUI
 
+private enum DeviceEditorSheet: Identifiable {
+    case add
+    case edit(Device)
+
+    var id: String {
+        switch self {
+        case .add:
+            return "add"
+        case .edit(let device):
+            return "edit-\(device.id)"
+        }
+    }
+}
+
 struct DeviceManageView: View {
     @ObservedObject var viewModel: DeviceViewModel
     @Environment(\.presentationMode) private var presentationMode
-    @State private var showAdd = false
+    @State private var activeSheet: DeviceEditorSheet?
 
     var body: some View {
         NavigationView {
@@ -15,7 +29,9 @@ struct DeviceManageView: View {
                         .padding(.vertical, 24)
                 } else {
                     ForEach(viewModel.devices) { device in
-                        NavigationLink(destination: DeviceEditView(device: device, viewModel: viewModel, wrapsNavigation: false).id(device.id)) {
+                        Button {
+                            activeSheet = .edit(device)
+                        } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(device.name)
                                     .font(.headline)
@@ -29,6 +45,7 @@ struct DeviceManageView: View {
                             }
                             .padding(.vertical, 4)
                         }
+                        .buttonStyle(.plain)
                     }
                     .onMove(perform: move)
                     .onDelete(perform: delete)
@@ -42,13 +59,18 @@ struct DeviceManageView: View {
                     Button("完成") { presentationMode.wrappedValue.dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showAdd = true }) {
+                    Button(action: { activeSheet = .add }) {
                         Image(systemName: "plus")
                     }
                 }
             }
-            .sheet(isPresented: $showAdd, onDismiss: viewModel.loadDevices) {
-                DeviceEditView(device: nil, viewModel: viewModel)
+            .sheet(item: $activeSheet, onDismiss: viewModel.loadDevices) { sheet in
+                switch sheet {
+                case .add:
+                    DeviceEditView(device: nil, viewModel: viewModel)
+                case .edit(let device):
+                    DeviceEditView(device: device, viewModel: viewModel)
+                }
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())

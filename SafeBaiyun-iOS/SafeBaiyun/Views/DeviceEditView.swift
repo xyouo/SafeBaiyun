@@ -54,7 +54,7 @@ struct DeviceEditView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button("取消") { presentationMode.wrappedValue.dismiss() }
+                Button("取消") { dismiss() }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(isNew ? "添加" : "保存") { save() }
@@ -62,6 +62,16 @@ struct DeviceEditView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 40)
+                .onEnded { value in
+                    let horizontal = value.translation.width
+                    let vertical = abs(value.translation.height)
+                    if horizontal > 90 && vertical < 80 {
+                        dismiss()
+                    }
+                }
+        )
     }
 
     private func save() {
@@ -74,6 +84,10 @@ struct DeviceEditView: View {
             key: key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         )
         viewModel.saveDevice(newDevice, isNew: isNew)
+        dismiss()
+    }
+
+    private func dismiss() {
         presentationMode.wrappedValue.dismiss()
     }
 }
