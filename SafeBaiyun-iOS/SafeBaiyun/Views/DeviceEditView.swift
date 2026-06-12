@@ -54,17 +54,14 @@ struct DeviceEditView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                if isNew {
-                    Button("取消") { presentationMode.wrappedValue.dismiss() }
-                } else {
-                    EmptyView()
-                }
+                Button("取消") { presentationMode.wrappedValue.dismiss() }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(isNew ? "添加" : "保存") { save() }
                     .disabled(!canSave)
             }
         }
+        .navigationBarBackButtonHidden(true)
     }
 
     private func save() {

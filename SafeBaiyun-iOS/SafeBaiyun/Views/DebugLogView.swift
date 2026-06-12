@@ -4,7 +4,6 @@ import UIKit
 private struct CacheRow: Identifiable, Equatable {
     let deviceId: String
     let deviceName: String
-    let mac: String
     var value: String
 
     var id: String { deviceId }
@@ -115,10 +114,6 @@ struct DebugLogView: View {
                                 refreshCacheInfos()
                             }
                         }
-                        Text("MAC: \(row.mac)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .textSelection(.enabled)
                         TextField("iOS 外设 UUID", text: $row.value)
                             .font(.caption2.monospaced())
                             .autocapitalization(.allCharacters)
@@ -147,7 +142,6 @@ struct DebugLogView: View {
             CacheRow(
                 deviceId: device.id,
                 deviceName: device.name,
-                mac: device.mac,
                 value: DataService.shared.cachedPeripheralId(for: device.id)?.uuidString ?? ""
             )
         }
