@@ -53,9 +53,11 @@ struct DeviceEditView: View {
         .navigationTitle(isNew ? "添加设备" : "编辑设备")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if isNew {
-                ToolbarItem(placement: .navigationBarLeading) {
+            ToolbarItem(placement: .navigationBarLeading) {
+                if isNew {
                     Button("取消") { presentationMode.wrappedValue.dismiss() }
+                } else {
+                    EmptyView()
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
