@@ -15,7 +15,7 @@ struct DeviceManageView: View {
                         .padding(.vertical, 24)
                 } else {
                     ForEach(viewModel.devices) { device in
-                        NavigationLink(destination: DeviceEditView(device: device, viewModel: viewModel, wrapsNavigation: false)) {
+                        NavigationLink(destination: DeviceEditView(device: device, viewModel: viewModel, wrapsNavigation: false).id(device.id)) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(device.name)
                                     .font(.headline)

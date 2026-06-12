@@ -88,6 +88,13 @@ class DataService {
         defaults.set(peripheralId.uuidString, forKey: cachedPeripheralPrefix + deviceId)
     }
 
+    func saveCachedPeripheralIdString(_ value: String, for deviceId: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let peripheralId = UUID(uuidString: trimmed) else { return false }
+        saveCachedPeripheralId(peripheralId, for: deviceId)
+        return true
+    }
+
     func cachedPeripheralInfos() -> [CachedPeripheralInfo] {
         readDevices().compactMap { device in
             guard let peripheralId = cachedPeripheralId(for: device.id) else { return nil }

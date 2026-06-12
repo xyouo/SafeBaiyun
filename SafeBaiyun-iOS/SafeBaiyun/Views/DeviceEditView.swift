@@ -6,9 +6,18 @@ struct DeviceEditView: View {
     var wrapsNavigation = true
     @Environment(\.presentationMode) private var presentationMode
 
-    @State private var name = ""
-    @State private var mac = ""
-    @State private var key = ""
+    @State private var name: String
+    @State private var mac: String
+    @State private var key: String
+
+    init(device: Device?, viewModel: DeviceViewModel, wrapsNavigation: Bool = true) {
+        self.device = device
+        self.viewModel = viewModel
+        self.wrapsNavigation = wrapsNavigation
+        _name = State(initialValue: device?.name ?? "")
+        _mac = State(initialValue: device?.mac ?? "")
+        _key = State(initialValue: device?.key ?? "")
+    }
 
     private var isNew: Bool { device == nil }
     private var canSave: Bool {
@@ -44,19 +53,14 @@ struct DeviceEditView: View {
         .navigationTitle(isNew ? "添加设备" : "编辑设备")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("取消") { presentationMode.wrappedValue.dismiss() }
+            if isNew {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("取消") { presentationMode.wrappedValue.dismiss() }
+                }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(isNew ? "添加" : "保存") { save() }
                     .disabled(!canSave)
-            }
-        }
-        .onAppear {
-            if let d = device {
-                name = d.name
-                mac = d.mac
-                key = d.key
             }
         }
     }
