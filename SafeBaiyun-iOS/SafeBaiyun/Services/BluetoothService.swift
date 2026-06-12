@@ -10,6 +10,7 @@ class BluetoothService: NSObject, ObservableObject {
         let advertisesMagicService: Bool
         let advertisesDoorDataService: Bool
         let nameLooksLikeDoor: Bool
+        let macNameMatches: Bool
         let isCached: Bool
     }
 
@@ -128,9 +129,10 @@ class BluetoothService: NSObject, ObservableObject {
         let advertisesDoorDataService = services.contains(doorDataService)
         let displayName = peripheral.name ?? localName
         let nameLooksLikeDoor = displayName.uppercased().hasPrefix("BY")
+        let macNameMatches = matchesDeviceMac(displayName)
         let isCached = peripheral.identifier == cachedPeripheralId
         let isLikelyDoor = advertisesMagicService || advertisesDoorDataService || nameLooksLikeDoor
-        log("发现设备: \(describe(peripheral)), name=\(localName), rssi=\(rssi), magic=\(advertisesMagicService), doorData=\(advertisesDoorDataService), byName=\(nameLooksLikeDoor), cached=\(isCached), services=\(services.map { $0.uuidString }.joined(separator: ","))")
+        log("发现设备: \(describe(peripheral)), name=\(localName), rssi=\(rssi), magic=\(advertisesMagicService), doorData=\(advertisesDoorDataService), byName=\(nameLooksLikeDoor), macMatch=\(macNameMatches), cached=\(isCached), services=\(services.map { $0.uuidString }.joined(separator: ","))")
 
         guard isLikelyDoor else {
             log("忽略非门禁候选: \(describe(peripheral))")
@@ -143,15 +145,16 @@ class BluetoothService: NSObject, ObservableObject {
             advertisesMagicService: advertisesMagicService,
             advertisesDoorDataService: advertisesDoorDataService,
             nameLooksLikeDoor: nameLooksLikeDoor,
+            macNameMatches: macNameMatches,
             isCached: isCached
         ))
 
-        if advertisesMagicService || advertisesDoorDataService {
-            log("发现门禁广播特征，立即尝试连接")
+        if advertisesMagicService || macNameMatches {
+            log(macNameMatches ? "发现与当前 MAC 匹配的门禁广播，立即尝试连接" : "发现门禁主服务广播，立即尝试连接")
             scanSettleWorkItem?.cancel()
             scanSettleWorkItem = nil
             connectNextCandidate()
-        } else if peripheral == nil && scanSettleWorkItem == nil {
+        } else if self.peripheral == nil && scanSettleWorkItem == nil {
             scheduleScanSettle(after: 0.4)
         }
     }
@@ -172,6 +175,9 @@ class BluetoothService: NSObject, ObservableObject {
         candidateWorkItem = nil
 
         candidates.sort {
+            if $0.macNameMatches != $1.macNameMatches {
+                return $0.macNameMatches && !$1.macNameMatches
+            }
             if $0.advertisesMagicService != $1.advertisesMagicService {
                 return $0.advertisesMagicService && !$1.advertisesMagicService
             }
@@ -212,6 +218,20 @@ class BluetoothService: NSObject, ObservableObject {
 
     private func describe(_ peripheral: CBPeripheral) -> String {
         "\(peripheral.name ?? "-")/\(peripheral.identifier.uuidString)"
+    }
+
+    private func matchesDeviceMac(_ name: String) -> Bool {
+        guard let device = currentDevice else { return false }
+        let normalizedName = name.uppercased().filter { $0.isLetter || $0.isNumber }
+        let hexCharacters = Set("0123456789ABCDEF")
+        let macHex = device.mac.uppercased().filter { hexCharacters.contains($0) }
+        guard macHex.count >= 8 else { return false }
+
+        let suffixes = [10, 9, 8]
+            .filter { macHex.count >= $0 }
+            .map { String(macHex.suffix($0)) }
+
+        return suffixes.contains { normalizedName.contains($0) }
     }
 
     private func log(_ message: String) {
