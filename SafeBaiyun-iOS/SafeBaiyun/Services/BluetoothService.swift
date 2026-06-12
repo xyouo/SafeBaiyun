@@ -56,7 +56,7 @@ class BluetoothService: NSObject, ObservableObject {
 
         cachedPeripheralId = DataService.shared.cachedPeripheralId(for: device.id)
         if let cachedId = cachedPeripheralId {
-            log("存在上次写入成功的 iOS 外设 UUID: \(cachedId.uuidString)，扫描到它时会优先连接")
+            log("存在上次写入成功的 iOS 外设 UUID: \(cachedId.uuidString)。当前版本仅显示和记录缓存，不用缓存优先连接")
         } else {
             log("没有缓存的 iOS 外设 UUID，开始扫描")
         }
@@ -129,7 +129,7 @@ class BluetoothService: NSObject, ObservableObject {
         let displayName = peripheral.name ?? localName
         let nameLooksLikeDoor = displayName.uppercased().hasPrefix("BY")
         let isCached = peripheral.identifier == cachedPeripheralId
-        let isLikelyDoor = isCached || advertisesMagicService || advertisesDoorDataService || nameLooksLikeDoor
+        let isLikelyDoor = advertisesMagicService || advertisesDoorDataService || nameLooksLikeDoor
         log("发现设备: \(describe(peripheral)), name=\(localName), rssi=\(rssi), magic=\(advertisesMagicService), doorData=\(advertisesDoorDataService), byName=\(nameLooksLikeDoor), cached=\(isCached), services=\(services.map { $0.uuidString }.joined(separator: ","))")
 
         guard isLikelyDoor else {
@@ -146,8 +146,8 @@ class BluetoothService: NSObject, ObservableObject {
             isCached: isCached
         ))
 
-        if advertisesMagicService || advertisesDoorDataService || isCached {
-            log(isCached ? "扫描到了缓存外设，优先尝试连接" : "发现门禁广播特征，立即尝试连接")
+        if advertisesMagicService || advertisesDoorDataService {
+            log("发现门禁广播特征，立即尝试连接")
             scanSettleWorkItem?.cancel()
             scanSettleWorkItem = nil
             connectNextCandidate()
@@ -172,9 +172,6 @@ class BluetoothService: NSObject, ObservableObject {
         candidateWorkItem = nil
 
         candidates.sort {
-            if $0.isCached != $1.isCached {
-                return $0.isCached && !$1.isCached
-            }
             if $0.advertisesMagicService != $1.advertisesMagicService {
                 return $0.advertisesMagicService && !$1.advertisesMagicService
             }

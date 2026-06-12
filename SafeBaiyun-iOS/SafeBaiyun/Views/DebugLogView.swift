@@ -5,10 +5,15 @@ struct DebugLogView: View {
     @ObservedObject private var logStore = DebugLogStore.shared
     @Environment(\.presentationMode) private var presentationMode
     @State private var exportItem: ExportItem?
+    @State private var cacheInfos: [DataService.CachedPeripheralInfo] = []
 
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                cacheSection
+
+                Divider()
+
                 Picker("日志", selection: $logStore.selectedSessionId) {
                     ForEach(logStore.sessions) { session in
                         Text(session.title).tag(session.id)
@@ -52,8 +57,66 @@ struct DebugLogView: View {
             .sheet(item: $exportItem) { item in
                 ActivityView(activityItems: [item.url])
             }
+            .onAppear {
+                refreshCacheInfos()
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
+    }
+
+    private var cacheSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("缓存外设")
+                    .font(.headline)
+                Spacer()
+                Button("刷新") {
+                    refreshCacheInfos()
+                }
+                if !cacheInfos.isEmpty {
+                    Button("全部清除", role: .destructive) {
+                        DataService.shared.clearAllCachedPeripherals()
+                        DebugLogStore.shared.append("已清除全部缓存外设")
+                        refreshCacheInfos()
+                    }
+                }
+            }
+
+            if cacheInfos.isEmpty {
+                Text("暂无缓存")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(cacheInfos) { info in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(info.deviceName)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .lineLimit(1)
+                            Spacer()
+                            Button("清除", role: .destructive) {
+                                DataService.shared.clearCachedPeripheral(for: info.deviceId)
+                                DebugLogStore.shared.append("已清除缓存外设: device=\(info.deviceName), uuid=\(info.peripheralId.uuidString)")
+                                refreshCacheInfos()
+                            }
+                        }
+                        Text("MAC: \(info.mac)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .textSelection(.enabled)
+                        Text("UUID: \(info.peripheralId.uuidString)")
+                            .font(.caption2.monospaced())
+                            .foregroundColor(.secondary)
+                            .textSelection(.enabled)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .background(Color(.systemBackground))
     }
 
     private func exportLog() {
@@ -62,6 +125,10 @@ struct DebugLogView: View {
             return
         }
         exportItem = ExportItem(url: url)
+    }
+
+    private func refreshCacheInfos() {
+        cacheInfos = DataService.shared.cachedPeripheralInfos()
     }
 }
 
