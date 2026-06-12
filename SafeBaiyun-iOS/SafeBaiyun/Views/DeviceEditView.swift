@@ -62,16 +62,6 @@ struct DeviceEditView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 40)
-                .onEnded { value in
-                    let horizontal = value.translation.width
-                    let vertical = abs(value.translation.height)
-                    if horizontal > 90 && vertical < 80 {
-                        dismiss()
-                    }
-                }
-        )
     }
 
     private func save() {

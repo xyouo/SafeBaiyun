@@ -43,7 +43,9 @@ struct DeviceManageView: View {
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.vertical, 4)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
