@@ -49,7 +49,7 @@ struct DeviceEditView: View {
     private var content: some View {
         List {
             Section(header: Text("设备信息")) {
-                TextField("address，如 小区门禁", text: $name)
+                TextField("address", text: $name)
                 TextField("macNum，如 12:34:56:78:9A:BC", text: $mac)
                     .autocapitalization(.allCharacters)
                     .disableAutocorrection(true)
@@ -58,7 +58,7 @@ struct DeviceEditView: View {
                     .disableAutocorrection(true)
             }
             Section(header: Text("缓存外设")) {
-                TextField("iOS 外设 UUID，可不填", text: $cachedPeripheralId)
+                TextField("iOS 外设 UUID", text: $cachedPeripheralId)
                     .autocapitalization(.allCharacters)
                     .disableAutocorrection(true)
                 if !isCachedPeripheralValid {

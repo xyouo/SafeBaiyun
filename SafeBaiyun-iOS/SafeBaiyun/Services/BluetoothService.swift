@@ -57,7 +57,7 @@ class BluetoothService: NSObject, ObservableObject {
 
         cachedPeripheralId = DataService.shared.cachedPeripheralId(for: device.id)
         if let cachedId = cachedPeripheralId {
-            log("存在上次写入成功的 iOS 外设 UUID: \(cachedId.uuidString)。当前版本仅显示和记录缓存，不用缓存优先连接")
+            log("存在缓存的 iOS 外设 UUID: \(cachedId.uuidString)。缓存仅用于人工核对和调试，自动开门仍按当前 address/macNum 匹配门禁")
         } else {
             log("没有缓存的 iOS 外设 UUID，开始扫描")
         }

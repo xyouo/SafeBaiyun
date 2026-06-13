@@ -37,16 +37,18 @@ struct DebugLogView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack {
-                        Button("导出") {
-                            exportLog()
+                        Menu("分享") {
+                            Button("导出日志") {
+                                exportLog()
+                            }
+                            Button("复制内容") {
+                                UIPasteboard.general.string = logStore.entries.joined(separator: "\n")
+                            }
                         }
-                        Button("复制") {
-                            UIPasteboard.general.string = logStore.entries.joined(separator: "\n")
-                        }
-                        Button("清空") {
-                            logStore.clearSelectedSession()
-                        }
-                        Menu("删除") {
+                        Menu("清理") {
+                            Button("清空当前日志") {
+                                logStore.clearSelectedSession()
+                            }
                             Button("删除当前日志", role: .destructive) {
                                 logStore.deleteSelectedSession()
                             }

@@ -44,19 +44,27 @@ struct DeviceListView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 14) {
                         #if DEBUG
-                        Button(action: { activeSheet = .debugLog }) {
+                        Button(action: {
+                            guard activeSheet == nil else { return }
+                            activeSheet = .debugLog
+                        }) {
                             Image(systemName: "doc.text.magnifyingglass")
                                 .font(.body.weight(.medium))
                         }
+                        .disabled(activeSheet != nil)
                         #endif
-                        Button(action: { activeSheet = .manage }) {
+                        Button(action: {
+                            guard activeSheet == nil else { return }
+                            activeSheet = .manage
+                        }) {
                             Image(systemName: "gearshape")
                                 .font(.body.weight(.medium))
                         }
+                        .disabled(activeSheet != nil)
                     }
                 }
             }
-            .sheet(item: $activeSheet, onDismiss: viewModel.loadDevices) { sheet in
+            .sheet(item: $activeSheet, onDismiss: sheetDidDismiss) { sheet in
                 switch sheet {
                 case .manage:
                     DeviceManageView(viewModel: viewModel)
@@ -90,6 +98,11 @@ struct DeviceListView: View {
                 unlockOverlay = nil
             }
         }
+    }
+
+    private func sheetDidDismiss() {
+        activeSheet = nil
+        viewModel.loadDevices()
     }
 }
 
@@ -235,11 +248,19 @@ struct DeviceCard: View {
         }
         .padding(.vertical, 5)
         .contextMenu {
-            Button("编辑") { showEdit = true }
+            Button("编辑") {
+                guard !showEdit else { return }
+                showEdit = true
+            }
             Button("删除") { viewModel.deleteDevice(device.id) }
         }
-        .sheet(isPresented: $showEdit, onDismiss: viewModel.loadDevices) {
+        .sheet(isPresented: $showEdit, onDismiss: editDidDismiss) {
             DeviceEditView(device: device, viewModel: viewModel)
         }
+    }
+
+    private func editDidDismiss() {
+        showEdit = false
+        viewModel.loadDevices()
     }
 }
