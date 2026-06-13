@@ -196,12 +196,14 @@ struct DeviceCard: View {
                 Text(device.name)
                     .font(.headline.weight(.semibold))
                     .foregroundColor(.primary)
-                    .lineLimit(1)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(device.mac)
                     .font(.caption.monospacedDigit())
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
+            .layoutPriority(1)
 
             Spacer(minLength: 8)
 
