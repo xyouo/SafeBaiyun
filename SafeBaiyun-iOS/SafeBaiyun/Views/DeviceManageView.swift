@@ -21,10 +21,21 @@ struct DeviceManageView: View {
     @ObservedObject var viewModel: DeviceViewModel
     @Environment(\.presentationMode) private var presentationMode
     @State private var activeSheet: DeviceEditorSheet?
+    @State private var debugModeEnabled = DataService.shared.isDebugModeEnabled()
 
     var body: some View {
         NavigationView {
             List {
+                Section {
+                    Toggle("调试模式", isOn: Binding(
+                        get: { debugModeEnabled },
+                        set: { enabled in
+                            debugModeEnabled = enabled
+                            DataService.shared.setDebugModeEnabled(enabled)
+                        }
+                    ))
+                }
+
                 if viewModel.devices.isEmpty {
                     Text("暂无设备，点右上角添加")
                         .foregroundColor(.secondary)

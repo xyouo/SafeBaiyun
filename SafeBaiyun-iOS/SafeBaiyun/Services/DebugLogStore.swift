@@ -37,7 +37,6 @@ final class DebugLogStore: ObservableObject {
     private let currentSession: DebugLogSession
 
     private init() {
-        #if DEBUG
         let baseURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         logsDirectory = baseURL.appendingPathComponent("SafeBaiyunLogs", isDirectory: true)
@@ -55,34 +54,25 @@ final class DebugLogStore: ObservableObject {
         }
         reloadSessions()
         loadSelectedSession()
-        #else
-        logsDirectory = FileManager.default.temporaryDirectory
-        currentSession = DebugLogSession(id: "release", title: "Release", fileURL: logsDirectory)
-        selectedSessionId = "release"
-        #endif
     }
 
     func append(_ message: String) {
-        #if DEBUG
+        guard DataService.shared.isDebugModeEnabled() else { return }
         let line = "[\(formatter.string(from: Date()))] \(message)"
         appendLine(line, to: currentSession.fileURL)
         if selectedSessionId == currentSession.id {
             entries.append(line)
         }
         print(line)
-        #endif
     }
 
     func clearSelectedSession() {
-        #if DEBUG
         guard let session = selectedSession else { return }
         try? "".write(to: session.fileURL, atomically: true, encoding: .utf8)
         entries.removeAll()
-        #endif
     }
 
     func deleteSelectedSession() {
-        #if DEBUG
         guard let session = selectedSession else { return }
         if session.id == currentSession.id {
             try? "".write(to: session.fileURL, atomically: true, encoding: .utf8)
@@ -91,11 +81,9 @@ final class DebugLogStore: ObservableObject {
         }
         reloadSessions()
         loadSelectedSession()
-        #endif
     }
 
     func deleteAllSessions() {
-        #if DEBUG
         for session in sessions {
             try? FileManager.default.removeItem(at: session.fileURL)
         }
@@ -105,7 +93,6 @@ final class DebugLogStore: ObservableObject {
         selectedSessionId = currentSession.id
         reloadSessions()
         loadSelectedSession()
-        #endif
     }
 
     func exportURLForSelectedSession() -> URL? {
@@ -137,7 +124,6 @@ final class DebugLogStore: ObservableObject {
     }
 
     private func loadSelectedSession() {
-        #if DEBUG
         guard let session = selectedSession else {
             entries = []
             return
@@ -147,7 +133,6 @@ final class DebugLogStore: ObservableObject {
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map(String.init)
             .filter { !$0.isEmpty }
-        #endif
     }
 
     private func appendLine(_ line: String, to fileURL: URL) {

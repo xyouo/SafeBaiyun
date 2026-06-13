@@ -6,6 +6,7 @@ class DataService {
     private let defaults = UserDefaults.standard
     private let devicesKey = "devices"
     private let cachedPeripheralPrefix = "cachedPeripheral.v2."
+    private let debugModeKey = "debugModeEnabled.v1"
 
     func readDevices() -> [Device] {
         guard let data = defaults.data(forKey: devicesKey) else { return [] }
@@ -88,5 +89,13 @@ class DataService {
 
     func clearCachedPeripheral(for deviceId: String) {
         defaults.removeObject(forKey: cachedPeripheralPrefix + deviceId)
+    }
+
+    func isDebugModeEnabled() -> Bool {
+        defaults.bool(forKey: debugModeKey)
+    }
+
+    func setDebugModeEnabled(_ enabled: Bool) {
+        defaults.set(enabled, forKey: debugModeKey)
     }
 }

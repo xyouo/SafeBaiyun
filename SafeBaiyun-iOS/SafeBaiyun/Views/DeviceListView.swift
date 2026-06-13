@@ -4,6 +4,7 @@ struct DeviceListView: View {
     @StateObject private var viewModel = DeviceViewModel()
     @State private var activeSheet: MainSheet?
     @State private var unlockOverlay: UnlockOverlayState?
+    @State private var debugModeEnabled = DataService.shared.isDebugModeEnabled()
 
     var body: some View {
         NavigationView {
@@ -43,15 +44,15 @@ struct DeviceListView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 14) {
-                        #if DEBUG
-                        Button(action: {
-                            guard activeSheet == nil else { return }
-                            activeSheet = .debugLog
-                        }) {
-                            Image(systemName: "doc.text.magnifyingglass")
-                                .font(.body.weight(.medium))
+                        if debugModeEnabled {
+                            Button(action: {
+                                guard activeSheet == nil else { return }
+                                activeSheet = .debugLog
+                            }) {
+                                Image(systemName: "doc.text.magnifyingglass")
+                                    .font(.body.weight(.medium))
+                            }
                         }
-                        #endif
                         Button(action: {
                             guard activeSheet == nil else { return }
                             activeSheet = .manage
@@ -71,7 +72,7 @@ struct DeviceListView: View {
                 }
             }
             .onReceive(viewModel.$isUnlocking) { isUnlocking in
-                if isUnlocking {
+                if isUnlocking, activeSheet != .debugLog {
                     withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
                         unlockOverlay = .opening
                     }
@@ -79,7 +80,11 @@ struct DeviceListView: View {
             }
             .onReceive(viewModel.$bluetoothStatus) { status in
                 guard !status.isEmpty, !status.contains("正在") else { return }
+                guard activeSheet != .debugLog else { return }
                 showUnlockResult(status)
+            }
+            .onAppear {
+                debugModeEnabled = DataService.shared.isDebugModeEnabled()
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
@@ -101,6 +106,7 @@ struct DeviceListView: View {
     private func sheetDidDismiss() {
         activeSheet = nil
         viewModel.loadDevices()
+        debugModeEnabled = DataService.shared.isDebugModeEnabled()
     }
 }
 
@@ -198,12 +204,8 @@ struct DeviceCard: View {
                     .foregroundColor(.primary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(device.mac)
-                    .font(.caption.monospacedDigit())
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
             }
-            .frame(maxWidth: .infinity, minHeight: 56, alignment: .center)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .center)
             .layoutPriority(1)
 
             HStack(spacing: 4) {
@@ -226,7 +228,7 @@ struct DeviceCard: View {
                     .disabled(idx == viewModel.devices.count - 1 || viewModel.isUnlocking)
                 }
             }
-            .frame(width: 68, height: 56)
+            .frame(width: 68, height: 44)
             .buttonStyle(.borderless)
 
             Button(action: { viewModel.unlock(device) }) {
@@ -238,10 +240,10 @@ struct DeviceCard: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.9)
                 }
-                .frame(width: 82, height: 44)
+                .frame(width: 76, height: 38)
                 .background(Color.accentColor)
                 .foregroundColor(.white)
-                .cornerRadius(9)
+                .cornerRadius(8)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.isUnlocking)
