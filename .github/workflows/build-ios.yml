@@ -17,8 +17,6 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: write
-    env:
-      RELEASE_REF: ios-stable
 
     steps:
       - uses: actions/checkout@v4
@@ -35,30 +33,22 @@ jobs:
         id: version
         run: |
           timestamp="$(date -u +%s)"
-          echo "ver=2.0.$timestamp" >> "$GITHUB_OUTPUT"
+          echo "ver=3.0.$timestamp" >> "$GITHUB_OUTPUT"
           echo "build=$timestamp" >> "$GITHUB_OUTPUT"
 
-      - name: Prepare Release source
-        run: |
-          git worktree add release-source "$RELEASE_REF"
-          xcodegen generate --spec release-source/SafeBaiyun-iOS/project.yml
-
-      - name: Generate Debug project
+      - name: Generate project
         run: xcodegen generate --spec SafeBaiyun-iOS/project.yml
 
       - name: Set bundle versions
         run: |
-          for plist in \
-            "release-source/SafeBaiyun-iOS/SafeBaiyun/Info.plist" \
-            "SafeBaiyun-iOS/SafeBaiyun/Info.plist"; do
-            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ steps.version.outputs.ver }}" "$plist"
-            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ steps.version.outputs.build }}" "$plist"
-          done
+          plist="SafeBaiyun-iOS/SafeBaiyun/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ steps.version.outputs.ver }}" "$plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ steps.version.outputs.build }}" "$plist"
 
       - name: Build Release app
         run: |
           xcodebuild \
-            -project release-source/SafeBaiyun-iOS/SafeBaiyun.xcodeproj \
+            -project SafeBaiyun-iOS/SafeBaiyun.xcodeproj \
             -scheme SafeBaiyun \
             -sdk iphoneos \
             -configuration Release \
@@ -95,12 +85,12 @@ jobs:
           echo "path=$ipa_name" >> "$GITHUB_OUTPUT"
           echo "debug_path=$debug_ipa_name" >> "$GITHUB_OUTPUT"
 
-      - name: Upload IPA to v2.0 release
+      - name: Upload IPA to v3.0 release
         run: |
-          gh release view v2.0 -R "${{ github.repository }}" >/dev/null 2>&1 || \
-            gh release create v2.0 -R "${{ github.repository }}" --title "v2.0" --notes "SafeBaiyun v2.0"
-          gh release upload v2.0 "${{ steps.ipa.outputs.path }}" -R "${{ github.repository }}" --clobber
-          gh release upload v2.0 "${{ steps.ipa.outputs.debug_path }}" -R "${{ github.repository }}" --clobber
+          gh release view v3.0 -R "${{ github.repository }}" >/dev/null 2>&1 || \
+            gh release create v3.0 -R "${{ github.repository }}" --title "v3.0" --notes "SafeBaiyun v3.0"
+          gh release upload v3.0 "${{ steps.ipa.outputs.path }}" -R "${{ github.repository }}" --clobber
+          gh release upload v3.0 "${{ steps.ipa.outputs.debug_path }}" -R "${{ github.repository }}" --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
