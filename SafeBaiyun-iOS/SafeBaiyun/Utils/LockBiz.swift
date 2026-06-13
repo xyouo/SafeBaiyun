@@ -3,8 +3,15 @@ import Foundation
 struct LockBiz {
     static func encryptData(inputData: [UInt8], headerData: [UInt8], keyString: String) -> [UInt8]? {
         let keyBytes = ByteUtil.hexToBytes(keyString)
-        guard keyBytes.isEmpty == false, headerData.count >= 6 else { return nil }
-        let headerBytesSubset = Array(headerData[2..<6])
+        guard keyBytes.isEmpty == false else { return nil }
+        let headerBytesSubset: [UInt8]
+        if headerData.count >= 6 {
+            headerBytesSubset = Array(headerData[2..<6])
+        } else if headerData.count == 4 {
+            headerBytesSubset = headerData
+        } else {
+            return nil
+        }
 
         var sum = inputData.reduce(0) { $0 + Int($1) }
         sum += keyBytes.reduce(0) { $0 + Int($1) }

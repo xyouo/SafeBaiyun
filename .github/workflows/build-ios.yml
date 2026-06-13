@@ -104,22 +104,3 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Keep latest IPA assets
-        run: |
-          gh release view v2.0 -R "${{ github.repository }}" --json assets \
-            --jq '.assets | map(select(.name | test("^SafeBaiyun-iOS-.*\\.ipa$"))) | .[].name' \
-            | while read -r asset; do
-                [ -n "$asset" ] && gh release delete-asset v2.0 "$asset" -R "${{ github.repository }}" -y
-              done
-          gh release view v2.0 -R "${{ github.repository }}" --json assets \
-            --jq '.assets | map(select(.name | test("^SafeBaiyun-2\\.0[.-][0-9]+\\.ipa$"))) | sort_by(.createdAt) | reverse | .[1:] | .[].name' \
-            | while read -r asset; do
-                [ -n "$asset" ] && gh release delete-asset v2.0 "$asset" -R "${{ github.repository }}" -y
-              done
-          gh release view v2.0 -R "${{ github.repository }}" --json assets \
-            --jq '.assets | map(select(.name | test("^SafeBaiyun-2\\.0[.-][0-9]+-debug\\.ipa$"))) | sort_by(.createdAt) | reverse | .[1:] | .[].name' \
-            | while read -r asset; do
-                [ -n "$asset" ] && gh release delete-asset v2.0 "$asset" -R "${{ github.repository }}" -y
-              done
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

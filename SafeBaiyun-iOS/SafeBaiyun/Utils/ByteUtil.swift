@@ -50,4 +50,27 @@ struct ByteUtil {
         }
         return parts.joined(separator: ":")
     }
+
+    static func normalizeBluetoothName(_ name: String) -> String {
+        name
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
+            .filter { $0.isLetter || $0.isNumber }
+    }
+
+    static func bluetoothNameHeaderBytes(_ name: String) -> [UInt8]? {
+        let clean = normalizeBluetoothName(name)
+        guard clean.count >= 11 else { return nil }
+        let startOffsets = [3, 5, 7, 9]
+        var result: [UInt8] = []
+        for offset in startOffsets {
+            let start = clean.index(clean.startIndex, offsetBy: offset)
+            let end = clean.index(start, offsetBy: 2)
+            guard let byte = UInt8(String(clean[start..<end]), radix: 16) else {
+                return nil
+            }
+            result.append(byte)
+        }
+        return result
+    }
 }

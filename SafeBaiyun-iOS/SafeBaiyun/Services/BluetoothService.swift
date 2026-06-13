@@ -10,8 +10,9 @@ class BluetoothService: NSObject, ObservableObject {
         let advertisesMagicService: Bool
         let advertisesDoorDataService: Bool
         let nameLooksLikeDoor: Bool
+        let bluetoothNameMatches: Bool
         let macNameMatches: Bool
-        let isCached: Bool
+        let isTrustedCached: Bool
     }
 
     private let magicService = CBUUID(string: "14839AC4-7D7E-415C-9A42-167340CF2339")
@@ -57,7 +58,7 @@ class BluetoothService: NSObject, ObservableObject {
 
         cachedPeripheralId = DataService.shared.cachedPeripheralId(for: device.id)
         if let cachedId = cachedPeripheralId {
-            log("存在缓存的 iOS 外设 UUID: \(cachedId.uuidString)。扫描到该门禁时会优先连接")
+            log("存在缓存的 iOS 外设 UUID: \(cachedId.uuidString)。会在匹配当前门禁时优先连接")
         } else {
             log("没有缓存的 iOS 外设 UUID，开始扫描")
         }
@@ -129,10 +130,13 @@ class BluetoothService: NSObject, ObservableObject {
         let advertisesDoorDataService = services.contains(doorDataService)
         let displayName = peripheral.name ?? localName
         let nameLooksLikeDoor = displayName.uppercased().hasPrefix("BY")
+        let bluetoothNameMatches = matchesBluetoothName(displayName)
         let macNameMatches = matchesDeviceMac(displayName)
         let isCached = peripheral.identifier == cachedPeripheralId
-        let isLikelyDoor = advertisesMagicService || advertisesDoorDataService || nameLooksLikeDoor
-        log("发现设备: \(describe(peripheral)), name=\(localName), rssi=\(rssi), magic=\(advertisesMagicService), doorData=\(advertisesDoorDataService), byName=\(nameLooksLikeDoor), macMatch=\(macNameMatches), cached=\(isCached), services=\(services.map { $0.uuidString }.joined(separator: ","))")
+        let hasBluetoothTarget = currentDevice.map { !$0.bluetoothName.isEmpty } ?? false
+        let isTrustedCached = isCached && (!hasBluetoothTarget || bluetoothNameMatches)
+        let isLikelyDoor = advertisesMagicService || advertisesDoorDataService || nameLooksLikeDoor || bluetoothNameMatches || macNameMatches
+        log("发现设备: \(describe(peripheral)), name=\(localName), rssi=\(rssi), magic=\(advertisesMagicService), doorData=\(advertisesDoorDataService), byName=\(nameLooksLikeDoor), btNameMatch=\(bluetoothNameMatches), macMatch=\(macNameMatches), cached=\(isCached), trustedCached=\(isTrustedCached), services=\(services.map { $0.uuidString }.joined(separator: ","))")
 
         guard isLikelyDoor else {
             log("忽略非门禁候选: \(describe(peripheral))")
@@ -145,13 +149,16 @@ class BluetoothService: NSObject, ObservableObject {
             advertisesMagicService: advertisesMagicService,
             advertisesDoorDataService: advertisesDoorDataService,
             nameLooksLikeDoor: nameLooksLikeDoor,
+            bluetoothNameMatches: bluetoothNameMatches,
             macNameMatches: macNameMatches,
-            isCached: isCached
+            isTrustedCached: isTrustedCached
         ))
 
-        if isCached || advertisesMagicService || macNameMatches {
-            if isCached {
-                log("发现缓存门禁广播，优先尝试连接")
+        if bluetoothNameMatches || macNameMatches || isTrustedCached || advertisesMagicService {
+            if bluetoothNameMatches {
+                log("发现与 bluetoothName 匹配的门禁广播，立即尝试连接")
+            } else if isTrustedCached {
+                log("发现可信缓存门禁广播，优先尝试连接")
             } else {
                 log(macNameMatches ? "发现与当前 MAC 匹配的门禁广播，立即尝试连接" : "发现门禁主服务广播，立即尝试连接")
             }
@@ -179,11 +186,14 @@ class BluetoothService: NSObject, ObservableObject {
         candidateWorkItem = nil
 
         candidates.sort {
-            if $0.isCached != $1.isCached {
-                return $0.isCached && !$1.isCached
+            if $0.bluetoothNameMatches != $1.bluetoothNameMatches {
+                return $0.bluetoothNameMatches && !$1.bluetoothNameMatches
             }
             if $0.macNameMatches != $1.macNameMatches {
                 return $0.macNameMatches && !$1.macNameMatches
+            }
+            if $0.isTrustedCached != $1.isTrustedCached {
+                return $0.isTrustedCached && !$1.isTrustedCached
             }
             if $0.advertisesMagicService != $1.advertisesMagicService {
                 return $0.advertisesMagicService && !$1.advertisesMagicService
@@ -239,6 +249,12 @@ class BluetoothService: NSObject, ObservableObject {
             .map { String(macHex.suffix($0)) }
 
         return suffixes.contains { normalizedName.contains($0) }
+    }
+
+    private func matchesBluetoothName(_ name: String) -> Bool {
+        guard let device = currentDevice, device.bluetoothName.isEmpty == false else { return false }
+        let normalizedName = ByteUtil.normalizeBluetoothName(name)
+        return normalizedName == device.bluetoothName || normalizedName.contains(device.bluetoothName)
     }
 
     private func log(_ message: String) {
@@ -362,7 +378,7 @@ extension BluetoothService: CBPeripheralDelegate {
         didStartUnlock = true
 
         let inputBytes = [UInt8](value)
-        let headerBytes = ByteUtil.macToBytes(device.mac)
+        let headerBytes = ByteUtil.bluetoothNameHeaderBytes(device.bluetoothName) ?? ByteUtil.macToBytes(device.mac)
         log("读取完成: bytes=\(inputBytes.count)，开始加密")
 
         guard let encrypted = LockBiz.encryptData(inputData: inputBytes, headerData: headerBytes, keyString: device.key) else {

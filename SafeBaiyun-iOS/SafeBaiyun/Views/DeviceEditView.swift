@@ -4,25 +4,29 @@ struct DeviceEditView: View {
     let device: Device?
     @ObservedObject var viewModel: DeviceViewModel
     var wrapsNavigation = true
+    private let forceNew: Bool
     @Environment(\.presentationMode) private var presentationMode
 
     @State private var name: String
     @State private var mac: String
     @State private var key: String
+    @State private var bluetoothName: String
     @State private var cachedPeripheralId: String
 
-    init(device: Device?, viewModel: DeviceViewModel, wrapsNavigation: Bool = true) {
+    init(device: Device?, viewModel: DeviceViewModel, wrapsNavigation: Bool = true, forceNew: Bool = false) {
         self.device = device
         self.viewModel = viewModel
         self.wrapsNavigation = wrapsNavigation
+        self.forceNew = forceNew
         _name = State(initialValue: device?.name ?? "")
         _mac = State(initialValue: device?.mac ?? "")
         _key = State(initialValue: device?.key ?? "")
+        _bluetoothName = State(initialValue: device?.bluetoothName ?? "")
         let cachedId = device.flatMap { DataService.shared.cachedPeripheralId(for: $0.id)?.uuidString } ?? ""
         _cachedPeripheralId = State(initialValue: cachedId)
     }
 
-    private var isNew: Bool { device == nil }
+    private var isNew: Bool { forceNew || device == nil }
     private var canSave: Bool {
         ByteUtil.macToBytes(mac).count == 6
             && ByteUtil.hexToBytes(key).count > 0
@@ -54,6 +58,9 @@ struct DeviceEditView: View {
                     .autocapitalization(.allCharacters)
                     .disableAutocorrection(true)
                 TextField("productKey，如 1234567890ABCDEF", text: $key)
+                    .autocapitalization(.allCharacters)
+                    .disableAutocorrection(true)
+                TextField("bluetoothName，如 BY1A9EDA38F", text: $bluetoothName)
                     .autocapitalization(.allCharacters)
                     .disableAutocorrection(true)
             }
@@ -90,7 +97,8 @@ struct DeviceEditView: View {
             id: device?.id ?? UUID().uuidString,
             name: finalName,
             mac: ByteUtil.normalizeMac(mac),
-            key: key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            key: key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(),
+            bluetoothName: ByteUtil.normalizeBluetoothName(bluetoothName)
         )
         viewModel.saveDevice(newDevice, isNew: isNew)
         saveCachedPeripheral(for: newDevice)

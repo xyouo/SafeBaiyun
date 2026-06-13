@@ -1,15 +1,18 @@
 import SwiftUI
 
 private enum DeviceEditorSheet: Identifiable {
-    case add
+    case add(Device?)
     case edit(Device)
+    case onlineFetch
 
     var id: String {
         switch self {
-        case .add:
-            return "add"
+        case .add(let device):
+            return "add-\(device?.id ?? "empty")"
         case .edit(let device):
             return "edit-\(device.id)"
+        case .onlineFetch:
+            return "online-fetch"
         }
     }
 }
@@ -43,6 +46,12 @@ struct DeviceManageView: View {
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
+                                if !device.bluetoothName.isEmpty {
+                                    Text("bluetoothName: \(device.bluetoothName)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
                                 Text("cachedPeripheral: \(cachedPeripheralText(for: device))")
                                     .font(.caption2.monospaced())
                                     .foregroundColor(.secondary)
@@ -66,20 +75,33 @@ struct DeviceManageView: View {
                     Button("完成") { presentationMode.wrappedValue.dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        guard activeSheet == nil else { return }
-                        activeSheet = .add
-                    }) {
+                    Menu {
+                        Button("手动添加") {
+                            guard activeSheet == nil else { return }
+                            activeSheet = .add(nil)
+                        }
+                        Button("在线获取") {
+                            guard activeSheet == nil else { return }
+                            activeSheet = .onlineFetch
+                        }
+                    } label: {
                         Image(systemName: "plus")
                     }
                 }
             }
             .sheet(item: $activeSheet, onDismiss: editorDidDismiss) { sheet in
                 switch sheet {
-                case .add:
-                    DeviceEditView(device: nil, viewModel: viewModel)
+                case .add(let device):
+                    DeviceEditView(device: device, viewModel: viewModel, forceNew: true)
                 case .edit(let device):
                     DeviceEditView(device: device, viewModel: viewModel)
+                case .onlineFetch:
+                    OnlineDeviceFetchView { device in
+                        activeSheet = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                            activeSheet = .add(device)
+                        }
+                    }
                 }
             }
         }
