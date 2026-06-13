@@ -57,7 +57,7 @@ class BluetoothService: NSObject, ObservableObject {
 
         cachedPeripheralId = DataService.shared.cachedPeripheralId(for: device.id)
         if let cachedId = cachedPeripheralId {
-            log("存在缓存的 iOS 外设 UUID: \(cachedId.uuidString)。缓存仅用于人工核对和调试，自动开门仍按当前 address/macNum 匹配门禁")
+            log("存在缓存的 iOS 外设 UUID: \(cachedId.uuidString)。扫描到该门禁时会优先连接")
         } else {
             log("没有缓存的 iOS 外设 UUID，开始扫描")
         }
@@ -149,8 +149,12 @@ class BluetoothService: NSObject, ObservableObject {
             isCached: isCached
         ))
 
-        if advertisesMagicService || macNameMatches {
-            log(macNameMatches ? "发现与当前 MAC 匹配的门禁广播，立即尝试连接" : "发现门禁主服务广播，立即尝试连接")
+        if isCached || advertisesMagicService || macNameMatches {
+            if isCached {
+                log("发现缓存门禁广播，优先尝试连接")
+            } else {
+                log(macNameMatches ? "发现与当前 MAC 匹配的门禁广播，立即尝试连接" : "发现门禁主服务广播，立即尝试连接")
+            }
             scanSettleWorkItem?.cancel()
             scanSettleWorkItem = nil
             connectNextCandidate()
@@ -175,6 +179,9 @@ class BluetoothService: NSObject, ObservableObject {
         candidateWorkItem = nil
 
         candidates.sort {
+            if $0.isCached != $1.isCached {
+                return $0.isCached && !$1.isCached
+            }
             if $0.macNameMatches != $1.macNameMatches {
                 return $0.macNameMatches && !$1.macNameMatches
             }

@@ -53,7 +53,6 @@ struct DeviceManageView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .disabled(activeSheet != nil)
                     }
                     .onMove(perform: move)
                     .onDelete(perform: delete)
@@ -73,7 +72,6 @@ struct DeviceManageView: View {
                     }) {
                         Image(systemName: "plus")
                     }
-                    .disabled(activeSheet != nil)
                 }
             }
             .sheet(item: $activeSheet, onDismiss: editorDidDismiss) { sheet in

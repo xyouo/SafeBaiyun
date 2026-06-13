@@ -51,7 +51,6 @@ struct DeviceListView: View {
                             Image(systemName: "doc.text.magnifyingglass")
                                 .font(.body.weight(.medium))
                         }
-                        .disabled(activeSheet != nil)
                         #endif
                         Button(action: {
                             guard activeSheet == nil else { return }
@@ -60,7 +59,6 @@ struct DeviceListView: View {
                             Image(systemName: "gearshape")
                                 .font(.body.weight(.medium))
                         }
-                        .disabled(activeSheet != nil)
                     }
                 }
             }
