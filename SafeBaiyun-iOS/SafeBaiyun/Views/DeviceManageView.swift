@@ -96,12 +96,7 @@ struct DeviceManageView: View {
                 case .edit(let device):
                     DeviceEditView(device: device, viewModel: viewModel)
                 case .onlineFetch:
-                    OnlineDeviceFetchView { device in
-                        activeSheet = nil
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                            activeSheet = .add(device)
-                        }
-                    }
+                    OnlineDeviceFetchView(viewModel: viewModel)
                 }
             }
         }

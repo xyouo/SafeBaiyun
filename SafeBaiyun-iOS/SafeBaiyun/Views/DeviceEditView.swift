@@ -93,12 +93,15 @@ struct DeviceEditView: View {
     private func save() {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalName = trimmedName.isEmpty ? viewModel.generateUniqueName() : trimmedName
+        let normalizedMac = ByteUtil.normalizeMac(mac)
+        let normalizedBluetoothName = ByteUtil.normalizeBluetoothName(bluetoothName)
+        let finalBluetoothName = normalizedBluetoothName.isEmpty ? ByteUtil.derivedBluetoothName(fromMac: normalizedMac) : normalizedBluetoothName
         let newDevice = Device(
             id: device?.id ?? UUID().uuidString,
             name: finalName,
-            mac: ByteUtil.normalizeMac(mac),
+            mac: normalizedMac,
             key: key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(),
-            bluetoothName: ByteUtil.normalizeBluetoothName(bluetoothName)
+            bluetoothName: finalBluetoothName
         )
         viewModel.saveDevice(newDevice, isNew: isNew)
         saveCachedPeripheral(for: newDevice)

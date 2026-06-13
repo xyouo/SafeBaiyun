@@ -58,6 +58,15 @@ struct ByteUtil {
             .filter { $0.isLetter || $0.isNumber }
     }
 
+    static func derivedBluetoothName(fromMac mac: String) -> String {
+        let hex = mac
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
+            .filter { $0.isLetter || $0.isNumber }
+        guard hex.count >= 9 else { return "" }
+        return "BY" + String(hex.suffix(9))
+    }
+
     static func bluetoothNameHeaderBytes(_ name: String) -> [UInt8]? {
         let clean = normalizeBluetoothName(name)
         guard clean.count >= 11 else { return nil }

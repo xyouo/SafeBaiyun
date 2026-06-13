@@ -143,7 +143,8 @@ final class EntranceGuardAPI {
             guard let key = stringValue(record["productKey"]), ByteUtil.hexToBytes(key).isEmpty == false else {
                 return nil
             }
-            let bluetoothName = ByteUtil.normalizeBluetoothName(stringValue(record["bluetoothName"]) ?? "")
+            let bluetoothNameFromResponse = ByteUtil.normalizeBluetoothName(stringValue(record["bluetoothName"]) ?? "")
+            let bluetoothName = bluetoothNameFromResponse.isEmpty ? ByteUtil.derivedBluetoothName(fromMac: mac) : bluetoothNameFromResponse
             return RemoteDoorDevice(
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),
                 mac: mac,

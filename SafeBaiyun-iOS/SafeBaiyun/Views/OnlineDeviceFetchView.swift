@@ -2,13 +2,14 @@ import SwiftUI
 
 struct OnlineDeviceFetchView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @ObservedObject var viewModel: DeviceViewModel
     @State private var phone = ""
     @State private var idCard = ""
+    @State private var showsIdCard = false
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var devices: [RemoteDoorDevice] = []
-
-    let onPick: (Device) -> Void
+    @State private var selectedDevice: Device?
 
     var body: some View {
         NavigationView {
@@ -16,17 +17,38 @@ struct OnlineDeviceFetchView: View {
                 Section(header: Text("账号信息")) {
                     TextField("手机号", text: $phone)
                         .keyboardType(.numberPad)
-                    SecureField("身份证号", text: $idCard)
+                    HStack {
+                        Group {
+                            if showsIdCard {
+                                TextField("身份证号", text: $idCard)
+                            } else {
+                                SecureField("身份证号", text: $idCard)
+                            }
+                        }
                         .textInputAutocapitalization(.characters)
                         .disableAutocorrection(true)
+
+                        Button {
+                            showsIdCard.toggle()
+                        } label: {
+                            Image(systemName: showsIdCard ? "eye.slash" : "eye")
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.secondary)
+                    }
+                }
+
+                Section {
                     Button {
                         Task { await fetch() }
                     } label: {
                         HStack {
+                            Spacer()
                             if isLoading {
                                 ProgressView()
                             }
                             Text(isLoading ? "获取中" : "获取门禁")
+                            Spacer()
                         }
                     }
                     .disabled(isLoading || phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || idCard.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -58,7 +80,7 @@ struct OnlineDeviceFetchView: View {
                                         .foregroundColor(.secondary)
                                 }
                                 Button("填入添加") {
-                                    onPick(device.device)
+                                    selectedDevice = device.device
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .padding(.top, 4)
@@ -75,6 +97,12 @@ struct OnlineDeviceFetchView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("取消") { presentationMode.wrappedValue.dismiss() }
                 }
+            }
+            .sheet(item: $selectedDevice, onDismiss: {
+                selectedDevice = nil
+                viewModel.loadDevices()
+            }) { device in
+                DeviceEditView(device: device, viewModel: viewModel, forceNew: true)
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
