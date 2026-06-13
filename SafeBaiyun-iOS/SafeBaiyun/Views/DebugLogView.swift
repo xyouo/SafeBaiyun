@@ -27,6 +27,9 @@ struct DebugLogView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(14)
                 }
+                .transaction { transaction in
+                    transaction.animation = nil
+                }
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("调试日志")

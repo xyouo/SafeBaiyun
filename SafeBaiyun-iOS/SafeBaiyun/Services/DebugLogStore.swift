@@ -69,7 +69,6 @@ final class DebugLogStore: ObservableObject {
         if selectedSessionId == currentSession.id {
             entries.append(line)
         }
-        reloadSessions()
         print(line)
         #endif
     }
