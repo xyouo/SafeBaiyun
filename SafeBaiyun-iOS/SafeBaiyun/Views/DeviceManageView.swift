@@ -33,13 +33,17 @@ struct DeviceManageView: View {
                             activeSheet = .edit(device)
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(device.name)
+                                Text("address: \(device.name)")
                                     .font(.headline)
-                                Text("MAC: \(device.mac)")
+                                Text("macNum: \(device.mac)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                Text("Key: \(device.key)")
+                                Text("productKey: \(device.key)")
                                     .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                Text("cachedPeripheral: \(cachedPeripheralText(for: device))")
+                                    .font(.caption2.monospaced())
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
                             }
@@ -86,5 +90,9 @@ struct DeviceManageView: View {
 
     private func move(from source: IndexSet, to destination: Int) {
         viewModel.move(from: source, to: destination)
+    }
+
+    private func cachedPeripheralText(for device: Device) -> String {
+        DataService.shared.cachedPeripheralId(for: device.id)?.uuidString ?? "-"
     }
 }

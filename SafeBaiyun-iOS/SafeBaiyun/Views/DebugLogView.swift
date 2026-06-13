@@ -1,27 +1,14 @@
 import SwiftUI
 import UIKit
 
-private struct CacheRow: Identifiable, Equatable {
-    let deviceId: String
-    let deviceName: String
-    var value: String
-
-    var id: String { deviceId }
-}
-
 struct DebugLogView: View {
     @ObservedObject private var logStore = DebugLogStore.shared
     @Environment(\.presentationMode) private var presentationMode
     @State private var exportItem: ExportItem?
-    @State private var cacheRows: [CacheRow] = []
 
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                cacheSection
-
-                Divider()
-
                 Picker("日志", selection: $logStore.selectedSessionId) {
                     ForEach(logStore.sessions) { session in
                         Text(session.title).tag(session.id)
@@ -65,68 +52,8 @@ struct DebugLogView: View {
             .sheet(item: $exportItem) { item in
                 ActivityView(activityItems: [item.url])
             }
-            .onAppear {
-                refreshCacheInfos()
-            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
-    }
-
-    private var cacheSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("缓存外设")
-                    .font(.headline)
-                Spacer()
-                Button("刷新") {
-                    refreshCacheInfos()
-                }
-                if cacheRows.contains(where: { !$0.value.isEmpty }) {
-                    Button("全部清除", role: .destructive) {
-                        DataService.shared.clearAllCachedPeripherals()
-                        DebugLogStore.shared.append("已清除全部缓存外设")
-                        refreshCacheInfos()
-                    }
-                }
-            }
-
-            if cacheRows.isEmpty {
-                Text("暂无设备")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-            } else {
-                ForEach($cacheRows) { $row in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(row.deviceName)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .lineLimit(1)
-                            Spacer()
-                            Button("保存") {
-                                saveCache(row)
-                            }
-                            .disabled(row.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                            Button("清除", role: .destructive) {
-                                DataService.shared.clearCachedPeripheral(for: row.deviceId)
-                                DebugLogStore.shared.append("已清除缓存外设: device=\(row.deviceName)")
-                                row.value = ""
-                                refreshCacheInfos()
-                            }
-                        }
-                        TextField("iOS 外设 UUID", text: $row.value)
-                            .font(.caption2.monospaced())
-                            .autocapitalization(.allCharacters)
-                            .disableAutocorrection(true)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .background(Color(.systemBackground))
     }
 
     private func exportLog() {
@@ -135,25 +62,6 @@ struct DebugLogView: View {
             return
         }
         exportItem = ExportItem(url: url)
-    }
-
-    private func refreshCacheInfos() {
-        cacheRows = DataService.shared.readDevices().map { device in
-            CacheRow(
-                deviceId: device.id,
-                deviceName: device.name,
-                value: DataService.shared.cachedPeripheralId(for: device.id)?.uuidString ?? ""
-            )
-        }
-    }
-
-    private func saveCache(_ row: CacheRow) {
-        if DataService.shared.saveCachedPeripheralIdString(row.value, for: row.deviceId) {
-            DebugLogStore.shared.append("已保存缓存外设: device=\(row.deviceName), uuid=\(row.value)")
-            refreshCacheInfos()
-        } else {
-            DebugLogStore.shared.append("保存缓存外设失败，UUID 格式不正确: device=\(row.deviceName), value=\(row.value)")
-        }
     }
 }
 

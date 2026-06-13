@@ -7,15 +7,6 @@ class DataService {
     private let devicesKey = "devices"
     private let cachedPeripheralPrefix = "cachedPeripheral.v2."
 
-    struct CachedPeripheralInfo: Identifiable, Equatable {
-        let deviceId: String
-        let deviceName: String
-        let mac: String
-        let peripheralId: UUID
-
-        var id: String { deviceId }
-    }
-
     func readDevices() -> [Device] {
         guard let data = defaults.data(forKey: devicesKey) else { return [] }
         return (try? JSONDecoder().decode([Device].self, from: data)) ?? []
@@ -95,25 +86,7 @@ class DataService {
         return true
     }
 
-    func cachedPeripheralInfos() -> [CachedPeripheralInfo] {
-        readDevices().compactMap { device in
-            guard let peripheralId = cachedPeripheralId(for: device.id) else { return nil }
-            return CachedPeripheralInfo(
-                deviceId: device.id,
-                deviceName: device.name,
-                mac: device.mac,
-                peripheralId: peripheralId
-            )
-        }
-    }
-
     func clearCachedPeripheral(for deviceId: String) {
         defaults.removeObject(forKey: cachedPeripheralPrefix + deviceId)
-    }
-
-    func clearAllCachedPeripherals() {
-        for device in readDevices() {
-            clearCachedPeripheral(for: device.id)
-        }
     }
 }

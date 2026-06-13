@@ -9,6 +9,7 @@ struct DeviceEditView: View {
     @State private var name: String
     @State private var mac: String
     @State private var key: String
+    @State private var cachedPeripheralId: String
 
     init(device: Device?, viewModel: DeviceViewModel, wrapsNavigation: Bool = true) {
         self.device = device
@@ -17,11 +18,19 @@ struct DeviceEditView: View {
         _name = State(initialValue: device?.name ?? "")
         _mac = State(initialValue: device?.mac ?? "")
         _key = State(initialValue: device?.key ?? "")
+        let cachedId = device.flatMap { DataService.shared.cachedPeripheralId(for: $0.id)?.uuidString } ?? ""
+        _cachedPeripheralId = State(initialValue: cachedId)
     }
 
     private var isNew: Bool { device == nil }
     private var canSave: Bool {
-        ByteUtil.macToBytes(mac).count == 6 && ByteUtil.hexToBytes(key).count > 0
+        ByteUtil.macToBytes(mac).count == 6
+            && ByteUtil.hexToBytes(key).count > 0
+            && isCachedPeripheralValid
+    }
+    private var isCachedPeripheralValid: Bool {
+        let trimmed = cachedPeripheralId.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty || UUID(uuidString: trimmed) != nil
     }
 
     var body: some View {
@@ -40,13 +49,23 @@ struct DeviceEditView: View {
     private var content: some View {
         List {
             Section(header: Text("设备信息")) {
-                TextField("设备名称", text: $name)
-                TextField("MAC 地址，如 12:34:56:78:9A:BC", text: $mac)
+                TextField("address", text: $name)
+                TextField("macNum", text: $mac)
                     .autocapitalization(.allCharacters)
                     .disableAutocorrection(true)
-                TextField("加密 Key，如 1234567890ABCDEF", text: $key)
+                TextField("productKey", text: $key)
                     .autocapitalization(.allCharacters)
                     .disableAutocorrection(true)
+            }
+            Section(header: Text("缓存外设")) {
+                TextField("iOS 外设 UUID，可不填", text: $cachedPeripheralId)
+                    .autocapitalization(.allCharacters)
+                    .disableAutocorrection(true)
+                if !isCachedPeripheralValid {
+                    Text("UUID 格式不正确")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
             }
         }
         .listStyle(.insetGrouped)
@@ -74,7 +93,17 @@ struct DeviceEditView: View {
             key: key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         )
         viewModel.saveDevice(newDevice, isNew: isNew)
+        saveCachedPeripheral(for: newDevice)
         dismiss()
+    }
+
+    private func saveCachedPeripheral(for device: Device) {
+        let trimmedCache = cachedPeripheralId.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedCache.isEmpty {
+            DataService.shared.clearCachedPeripheral(for: device.id)
+        } else {
+            _ = DataService.shared.saveCachedPeripheralIdString(trimmedCache, for: device.id)
+        }
     }
 
     private func dismiss() {

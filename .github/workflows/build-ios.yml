@@ -33,7 +33,7 @@ jobs:
 
       - name: Get version
         id: version
-        run: echo "ver=2.0-$(date -u +%s)" >> "$GITHUB_OUTPUT"
+        run: echo "ver=2.0.$(date -u +%s)" >> "$GITHUB_OUTPUT"
 
       - name: Prepare Release source
         run: |
@@ -100,12 +100,12 @@ jobs:
                 [ -n "$asset" ] && gh release delete-asset v2.0 "$asset" -R "${{ github.repository }}" -y
               done
           gh release view v2.0 -R "${{ github.repository }}" --json assets \
-            --jq '.assets | map(select(.name | test("^SafeBaiyun-2\\.0-[0-9]+\\.ipa$"))) | sort_by(.createdAt) | reverse | .[1:] | .[].name' \
+            --jq '.assets | map(select(.name | test("^SafeBaiyun-2\\.0[.-][0-9]+\\.ipa$"))) | sort_by(.createdAt) | reverse | .[1:] | .[].name' \
             | while read -r asset; do
                 [ -n "$asset" ] && gh release delete-asset v2.0 "$asset" -R "${{ github.repository }}" -y
               done
           gh release view v2.0 -R "${{ github.repository }}" --json assets \
-            --jq '.assets | map(select(.name | test("^SafeBaiyun-2\\.0-[0-9]+-debug\\.ipa$"))) | sort_by(.createdAt) | reverse | .[1:] | .[].name' \
+            --jq '.assets | map(select(.name | test("^SafeBaiyun-2\\.0[.-][0-9]+-debug\\.ipa$"))) | sort_by(.createdAt) | reverse | .[1:] | .[].name' \
             | while read -r asset; do
                 [ -n "$asset" ] && gh release delete-asset v2.0 "$asset" -R "${{ github.repository }}" -y
               done
