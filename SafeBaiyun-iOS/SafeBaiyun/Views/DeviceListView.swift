@@ -191,29 +191,28 @@ struct DeviceCard: View {
     @State private var showEdit = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(device.name)
                     .font(.headline.weight(.semibold))
                     .foregroundColor(.primary)
-                    .lineLimit(3)
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(device.mac)
                     .font(.caption.monospacedDigit())
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
+            .frame(maxWidth: .infinity, minHeight: 56, alignment: .center)
             .layoutPriority(1)
 
-            Spacer(minLength: 8)
-
-            if viewModel.devices.count > 1,
-               let idx = viewModel.devices.firstIndex(where: { $0.id == device.id }) {
-                HStack(spacing: 6) {
+            HStack(spacing: 4) {
+                if viewModel.devices.count > 1,
+                   let idx = viewModel.devices.firstIndex(where: { $0.id == device.id }) {
                     Button { viewModel.moveUp(device.id) } label: {
                         Image(systemName: "chevron.up")
                             .font(.body.weight(.semibold))
-                            .frame(width: 36, height: 36)
+                            .frame(width: 30, height: 44)
                             .contentShape(Rectangle())
                     }
                     .disabled(idx == 0 || viewModel.isUnlocking)
@@ -221,13 +220,14 @@ struct DeviceCard: View {
                     Button { viewModel.moveDown(device.id) } label: {
                         Image(systemName: "chevron.down")
                             .font(.body.weight(.semibold))
-                            .frame(width: 36, height: 36)
+                            .frame(width: 30, height: 44)
                             .contentShape(Rectangle())
                     }
                     .disabled(idx == viewModel.devices.count - 1 || viewModel.isUnlocking)
                 }
-                .buttonStyle(.borderless)
             }
+            .frame(width: 68, height: 56)
+            .buttonStyle(.borderless)
 
             Button(action: { viewModel.unlock(device) }) {
                 HStack(spacing: 5) {
@@ -235,18 +235,19 @@ struct DeviceCard: View {
                         .font(.callout.weight(.semibold))
                     Text("开门")
                         .font(.callout.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 9)
+                .frame(width: 82, height: 44)
                 .background(Color.accentColor)
                 .foregroundColor(.white)
-                .cornerRadius(8)
+                .cornerRadius(9)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.isUnlocking)
             .opacity(viewModel.isUnlocking ? 0.55 : 1)
         }
-        .padding(.vertical, 5)
+        .padding(.vertical, 7)
         .contextMenu {
             Button("编辑") {
                 guard !showEdit else { return }
