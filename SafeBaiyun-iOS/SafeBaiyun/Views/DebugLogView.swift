@@ -46,6 +46,14 @@ struct DebugLogView: View {
                         Button("清空") {
                             logStore.clearSelectedSession()
                         }
+                        Menu("删除") {
+                            Button("删除当前日志", role: .destructive) {
+                                logStore.deleteSelectedSession()
+                            }
+                            Button("删除全部日志", role: .destructive) {
+                                logStore.deleteAllSessions()
+                            }
+                        }
                     }
                 }
             }

@@ -82,6 +82,33 @@ final class DebugLogStore: ObservableObject {
         #endif
     }
 
+    func deleteSelectedSession() {
+        #if DEBUG
+        guard let session = selectedSession else { return }
+        if session.id == currentSession.id {
+            try? "".write(to: session.fileURL, atomically: true, encoding: .utf8)
+        } else {
+            try? FileManager.default.removeItem(at: session.fileURL)
+        }
+        reloadSessions()
+        loadSelectedSession()
+        #endif
+    }
+
+    func deleteAllSessions() {
+        #if DEBUG
+        for session in sessions {
+            try? FileManager.default.removeItem(at: session.fileURL)
+        }
+        if FileManager.default.fileExists(atPath: currentSession.fileURL.path) == false {
+            try? "".write(to: currentSession.fileURL, atomically: true, encoding: .utf8)
+        }
+        selectedSessionId = currentSession.id
+        reloadSessions()
+        loadSelectedSession()
+        #endif
+    }
+
     func exportURLForSelectedSession() -> URL? {
         selectedSession?.fileURL
     }

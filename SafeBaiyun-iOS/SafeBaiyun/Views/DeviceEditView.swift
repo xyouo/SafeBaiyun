@@ -49,11 +49,11 @@ struct DeviceEditView: View {
     private var content: some View {
         List {
             Section(header: Text("设备信息")) {
-                TextField("address", text: $name)
-                TextField("macNum", text: $mac)
+                TextField("address，如 小区门禁", text: $name)
+                TextField("macNum，如 12:34:56:78:9A:BC", text: $mac)
                     .autocapitalization(.allCharacters)
                     .disableAutocorrection(true)
-                TextField("productKey", text: $key)
+                TextField("productKey，如 1234567890ABCDEF", text: $key)
                     .autocapitalization(.allCharacters)
                     .disableAutocorrection(true)
             }

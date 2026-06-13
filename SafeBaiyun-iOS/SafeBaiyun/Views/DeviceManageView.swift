@@ -30,10 +30,11 @@ struct DeviceManageView: View {
                 } else {
                     ForEach(viewModel.devices) { device in
                         Button {
+                            guard activeSheet == nil else { return }
                             activeSheet = .edit(device)
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("address: \(device.name)")
+                                Text(device.name)
                                     .font(.headline)
                                 Text("macNum: \(device.mac)")
                                     .font(.caption)
@@ -52,6 +53,7 @@ struct DeviceManageView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .disabled(activeSheet != nil)
                     }
                     .onMove(perform: move)
                     .onDelete(perform: delete)
@@ -65,12 +67,16 @@ struct DeviceManageView: View {
                     Button("完成") { presentationMode.wrappedValue.dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { activeSheet = .add }) {
+                    Button(action: {
+                        guard activeSheet == nil else { return }
+                        activeSheet = .add
+                    }) {
                         Image(systemName: "plus")
                     }
+                    .disabled(activeSheet != nil)
                 }
             }
-            .sheet(item: $activeSheet, onDismiss: viewModel.loadDevices) { sheet in
+            .sheet(item: $activeSheet, onDismiss: editorDidDismiss) { sheet in
                 switch sheet {
                 case .add:
                     DeviceEditView(device: nil, viewModel: viewModel)
@@ -94,5 +100,10 @@ struct DeviceManageView: View {
 
     private func cachedPeripheralText(for device: Device) -> String {
         DataService.shared.cachedPeripheralId(for: device.id)?.uuidString ?? "-"
+    }
+
+    private func editorDidDismiss() {
+        activeSheet = nil
+        viewModel.loadDevices()
     }
 }

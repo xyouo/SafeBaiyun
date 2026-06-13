@@ -33,7 +33,10 @@ jobs:
 
       - name: Get version
         id: version
-        run: echo "ver=2.0.$(date -u +%s)" >> "$GITHUB_OUTPUT"
+        run: |
+          timestamp="$(date -u +%s)"
+          echo "ver=2.0.$timestamp" >> "$GITHUB_OUTPUT"
+          echo "build=$timestamp" >> "$GITHUB_OUTPUT"
 
       - name: Prepare Release source
         run: |
@@ -42,6 +45,15 @@ jobs:
 
       - name: Generate Debug project
         run: xcodegen generate --spec SafeBaiyun-iOS/project.yml
+
+      - name: Set bundle versions
+        run: |
+          for plist in \
+            "release-source/SafeBaiyun-iOS/SafeBaiyun/Info.plist" \
+            "SafeBaiyun-iOS/SafeBaiyun/Info.plist"; do
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ steps.version.outputs.ver }}" "$plist"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ steps.version.outputs.build }}" "$plist"
+          done
 
       - name: Build Release app
         run: |
