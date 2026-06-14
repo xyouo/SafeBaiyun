@@ -120,11 +120,11 @@ private struct VariableValueRow: View {
     let value: String
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 10) {
             Text(label)
                 .font(.caption2.weight(.semibold))
                 .foregroundColor(.accentColor)
-                .frame(width: 72)
+                .frame(width: 66, alignment: .leading)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .background(
