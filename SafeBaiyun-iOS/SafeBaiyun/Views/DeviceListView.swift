@@ -205,7 +205,7 @@ struct DeviceCard: View {
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .center)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .layoutPriority(1)
 
             HStack(spacing: 4) {

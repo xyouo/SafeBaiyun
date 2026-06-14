@@ -48,23 +48,13 @@ struct DeviceManageView: View {
                             activeSheet = .edit(device)
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(device.name)
+                                Text("address: \(device.name)")
                                     .font(.headline)
-                                Text("macNum: \(device.mac)")
+                                Text("mac: \(device.mac)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                Text("productKey: \(device.key)")
+                                Text("key: \(device.key)")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                                if !device.bluetoothName.isEmpty {
-                                    Text("bluetoothName: \(device.bluetoothName)")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                }
-                                Text("cachedPeripheral: \(cachedPeripheralText(for: device))")
-                                    .font(.caption2.monospaced())
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
                             }
@@ -122,10 +112,6 @@ struct DeviceManageView: View {
 
     private func move(from source: IndexSet, to destination: Int) {
         viewModel.move(from: source, to: destination)
-    }
-
-    private func cachedPeripheralText(for device: Device) -> String {
-        DataService.shared.cachedPeripheralId(for: device.id)?.uuidString ?? "-"
     }
 
     private func editorDidDismiss() {
