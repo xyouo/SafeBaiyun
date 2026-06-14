@@ -121,16 +121,19 @@ private struct VariableValueRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Text(label)
-                .font(.caption2.weight(.semibold))
-                .foregroundColor(.accentColor)
-                .frame(width: 66, alignment: .leading)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .fill(Color.accentColor.opacity(0.12))
-                )
+            HStack {
+                Text(label)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(.accentColor)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.12))
+                    )
+                Spacer(minLength: 0)
+            }
+            .frame(width: 78, alignment: .leading)
             Text(value)
                 .font(.caption)
                 .foregroundColor(.secondary)

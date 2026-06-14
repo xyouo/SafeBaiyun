@@ -2,6 +2,7 @@ package cn.huacheng.safebaiyun.compose
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -187,17 +188,21 @@ private fun DeviceEditSheet(device: Device?, onDismiss: () -> Unit, onSave: (Dev
 @Composable
 private fun VariableValueRow(label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Surface(
-            modifier = Modifier.width(78.dp),
-            shape = MaterialTheme.shapes.extraSmall,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-            contentColor = MaterialTheme.colorScheme.primary
+        Box(
+            modifier = Modifier.width(88.dp),
+            contentAlignment = Alignment.CenterStart
         ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-            )
+            Surface(
+                shape = MaterialTheme.shapes.extraSmall,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
         }
         Text(
             text = value,
@@ -205,7 +210,7 @@ private fun VariableValueRow(label: String, value: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = 10.dp)
+            modifier = Modifier.padding(start = 0.dp)
         )
     }
 }
