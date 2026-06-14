@@ -47,7 +47,7 @@ struct DeviceManageView: View {
                             guard activeSheet == nil else { return }
                             activeSheet = .edit(device)
                         } label: {
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 5) {
                                 Text(device.name)
                                     .font(.headline)
                                 VariableValueRow(label: "macNum", value: device.mac)
@@ -124,6 +124,7 @@ private struct VariableValueRow: View {
             Text(label)
                 .font(.caption2.weight(.semibold))
                 .foregroundColor(.accentColor)
+                .frame(width: 72)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .background(
@@ -134,6 +135,7 @@ private struct VariableValueRow: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

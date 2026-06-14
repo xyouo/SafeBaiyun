@@ -1,10 +1,12 @@
 package cn.huacheng.safebaiyun.compose
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -30,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cn.huacheng.safebaiyun.unlock.DataRepo
@@ -65,7 +68,7 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             Text(device.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             VariableValueRow(label = "macNum", value = device.mac)
                             VariableValueRow(label = "productKey", value = device.key)
@@ -186,6 +189,7 @@ private fun DeviceEditSheet(device: Device?, onDismiss: () -> Unit, onSave: (Dev
 private fun VariableValueRow(label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Surface(
+            modifier = Modifier.width(86.dp),
             shape = MaterialTheme.shapes.extraSmall,
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
             contentColor = MaterialTheme.colorScheme.primary
@@ -193,6 +197,7 @@ private fun VariableValueRow(label: String, value: String) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
             )
         }
