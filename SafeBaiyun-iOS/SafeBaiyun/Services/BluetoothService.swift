@@ -13,6 +13,22 @@ class BluetoothService: NSObject, ObservableObject {
         let bluetoothNameMatches: Bool
         let macNameMatches: Bool
         let isTrustedCached: Bool
+        let displayName: String
+
+        var matchesCurrentDevice: Bool {
+            bluetoothNameMatches || macNameMatches
+        }
+
+        var priority: Int {
+            var score = rssi
+            if bluetoothNameMatches { score += 700 }
+            if macNameMatches { score += 600 }
+            if isTrustedCached { score += 500 }
+            if advertisesMagicService { score += 250 }
+            if advertisesDoorDataService { score += 180 }
+            if nameLooksLikeDoor { score += 100 }
+            return score
+        }
     }
 
     private let magicService = CBUUID(string: "14839AC4-7D7E-415C-9A42-167340CF2339")
@@ -28,9 +44,12 @@ class BluetoothService: NSObject, ObservableObject {
     private var overallTimeoutWorkItem: DispatchWorkItem?
     private var scanSettleWorkItem: DispatchWorkItem?
     private var candidateWorkItem: DispatchWorkItem?
-    private var discoveredIds = Set<UUID>()
+    private var serviceScanWorkItem: DispatchWorkItem?
+    private var discoveryLogCache: [UUID: String] = [:]
+    private var candidatesById: [UUID: Candidate] = [:]
     private var candidates: [Candidate] = []
     private var cachedPeripheralId: UUID?
+    private var connectedCandidate: Candidate?
 
     @Published var isUnlocking = false
     @Published var statusMessage = ""
@@ -58,42 +77,42 @@ class BluetoothService: NSObject, ObservableObject {
 
         cachedPeripheralId = DataService.shared.cachedPeripheralId(for: device.id)
         if let cachedId = cachedPeripheralId {
-            log("存在缓存的 iOS 外设 UUID: \(cachedId.uuidString)。会在匹配当前门禁时优先连接")
+            log("存在缓存的 iOS 外设 UUID: \(cachedId.uuidString)。会先扫描确认它属于当前门禁，再优先连接")
         } else {
             log("没有缓存的 iOS 外设 UUID，开始扫描")
         }
 
-        centralManager.scanForPeripherals(
-            withServices: nil,
-            options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
-        )
-        log("扫描已启动，service=nil，RSSI 阈值=-88")
-
+        startScan(withServices: nil, label: "nil")
         scheduleScanSettle(after: 0.8)
+        scheduleServiceFilteredScan()
 
         let timeoutWorkItem = DispatchWorkItem { [weak self] in
             self?.log("总体超时，未找到可用门禁")
             self?.finish(false, message: "未找到门禁设备")
         }
         overallTimeoutWorkItem = timeoutWorkItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 12, execute: timeoutWorkItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 16, execute: timeoutWorkItem)
     }
 
     private func resetConnection() {
         overallTimeoutWorkItem?.cancel()
         scanSettleWorkItem?.cancel()
         candidateWorkItem?.cancel()
+        serviceScanWorkItem?.cancel()
         overallTimeoutWorkItem = nil
         scanSettleWorkItem = nil
         candidateWorkItem = nil
+        serviceScanWorkItem = nil
         didStartUnlock = false
         writeChar = nil
         readChar = nil
         writeType = .withResponse
         notifyChars = []
-        discoveredIds.removeAll()
+        discoveryLogCache.removeAll()
+        candidatesById.removeAll()
         candidates.removeAll()
         cachedPeripheralId = nil
+        connectedCandidate = nil
         if let peripheral = peripheral {
             log("重置连接，取消当前设备: \(describe(peripheral))")
             centralManager?.cancelPeripheralConnection(peripheral)
@@ -106,6 +125,7 @@ class BluetoothService: NSObject, ObservableObject {
         overallTimeoutWorkItem?.cancel()
         scanSettleWorkItem?.cancel()
         candidateWorkItem?.cancel()
+        serviceScanWorkItem?.cancel()
         centralManager.stopScan()
         isUnlocking = false
         statusMessage = message
@@ -116,14 +136,35 @@ class BluetoothService: NSObject, ObservableObject {
             centralManager.cancelPeripheralConnection(peripheral)
         }
         peripheral = nil
+        connectedCandidate = nil
         candidates.removeAll()
+        candidatesById.removeAll()
+    }
+
+    private func startScan(withServices services: [CBUUID]?, label: String) {
+        centralManager.stopScan()
+        centralManager.scanForPeripherals(
+            withServices: services,
+            options: [CBCentralManagerScanOptionAllowDuplicatesKey: true]
+        )
+        log("扫描已启动，service=\(label)，RSSI 阈值=-88，允许重复广播更新候选")
+    }
+
+    private func scheduleServiceFilteredScan() {
+        serviceScanWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self, self.isUnlocking, self.peripheral == nil, !self.didStartUnlock else { return }
+            self.log("普通扫描暂未命中当前门禁，切换为门禁广播特征扫描")
+            self.startScan(withServices: [self.doorDataService], label: self.doorDataService.uuidString)
+            self.scheduleScanSettle(after: 1.0)
+        }
+        serviceScanWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0, execute: workItem)
     }
 
     private func enqueue(_ peripheral: CBPeripheral, advertisementData: [String: Any], rssi: Int) {
-        guard rssi > -88 else { return }
-        guard !discoveredIds.contains(peripheral.identifier) else { return }
+        guard isUnlocking, rssi > -88 else { return }
 
-        discoveredIds.insert(peripheral.identifier)
         let services = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] ?? []
         let localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? "-"
         let advertisesMagicService = services.contains(magicService)
@@ -136,14 +177,29 @@ class BluetoothService: NSObject, ObservableObject {
         let hasBluetoothTarget = currentDevice.map { !$0.bluetoothName.isEmpty } ?? false
         let isTrustedCached = isCached && (!hasBluetoothTarget || bluetoothNameMatches)
         let isLikelyDoor = advertisesMagicService || advertisesDoorDataService || nameLooksLikeDoor || bluetoothNameMatches || macNameMatches
-        log("发现设备: \(describe(peripheral)), name=\(localName), rssi=\(rssi), magic=\(advertisesMagicService), doorData=\(advertisesDoorDataService), byName=\(nameLooksLikeDoor), btNameMatch=\(bluetoothNameMatches), macMatch=\(macNameMatches), cached=\(isCached), trustedCached=\(isTrustedCached), services=\(services.map { $0.uuidString }.joined(separator: ","))")
+        let servicesText = services.map { $0.uuidString }.joined(separator: ",")
+        let signature = "\(isLikelyDoor)-\(localName)-\(advertisesMagicService)-\(advertisesDoorDataService)-\(nameLooksLikeDoor)-\(bluetoothNameMatches)-\(macNameMatches)-\(isCached)-\(isTrustedCached)-\(servicesText)"
+
+        let shouldLogDiscovery = discoveryLogCache[peripheral.identifier] != signature
+        if shouldLogDiscovery {
+            discoveryLogCache[peripheral.identifier] = signature
+            log("发现设备: \(describe(peripheral)), name=\(localName), rssi=\(rssi), magic=\(advertisesMagicService), doorData=\(advertisesDoorDataService), byName=\(nameLooksLikeDoor), btNameMatch=\(bluetoothNameMatches), macMatch=\(macNameMatches), cached=\(isCached), trustedCached=\(isTrustedCached), services=\(servicesText)")
+        }
+
+        if isCached && hasBluetoothTarget && nameLooksLikeDoor && !bluetoothNameMatches && !macNameMatches, let device = currentDevice {
+            log("缓存外设已扫描到，但名称 \(displayName) 与当前门禁 \(device.bluetoothName) 不匹配，已忽略并清除缓存")
+            DataService.shared.clearCachedPeripheral(for: device.id)
+            cachedPeripheralId = nil
+        }
 
         guard isLikelyDoor else {
-            log("忽略非门禁候选: \(describe(peripheral))")
+            if shouldLogDiscovery {
+                log("忽略非门禁候选: \(describe(peripheral))")
+            }
             return
         }
 
-        candidates.append(Candidate(
+        let candidate = Candidate(
             peripheral: peripheral,
             rssi: rssi,
             advertisesMagicService: advertisesMagicService,
@@ -151,10 +207,20 @@ class BluetoothService: NSObject, ObservableObject {
             nameLooksLikeDoor: nameLooksLikeDoor,
             bluetoothNameMatches: bluetoothNameMatches,
             macNameMatches: macNameMatches,
-            isTrustedCached: isTrustedCached
-        ))
+            isTrustedCached: isTrustedCached,
+            displayName: displayName
+        )
 
-        if bluetoothNameMatches || macNameMatches || isTrustedCached || advertisesMagicService {
+        if let existing = candidatesById[peripheral.identifier], existing.priority > candidate.priority {
+            return
+        }
+
+        candidatesById[peripheral.identifier] = candidate
+        candidates.removeAll { $0.peripheral.identifier == peripheral.identifier }
+        candidates.append(candidate)
+
+        let hasExactTarget = hasBluetoothTarget || (currentDevice.map { !$0.mac.isEmpty } ?? false)
+        if bluetoothNameMatches || macNameMatches || isTrustedCached || (advertisesMagicService && !hasExactTarget) {
             if bluetoothNameMatches {
                 log("发现与 bluetoothName 匹配的门禁广播，立即尝试连接")
             } else if isTrustedCached {
@@ -209,10 +275,12 @@ class BluetoothService: NSObject, ObservableObject {
 
         guard !candidates.isEmpty else { return }
 
-        let next = candidates.removeFirst().peripheral
+        let nextCandidate = candidates.removeFirst()
+        let next = nextCandidate.peripheral
         peripheral = next
+        connectedCandidate = nextCandidate
         next.delegate = self
-        log("尝试连接候选: \(describe(next))")
+        log("尝试连接候选: \(describe(next))，match=\(nextCandidate.matchesCurrentDevice), cached=\(nextCandidate.isTrustedCached), rssi=\(nextCandidate.rssi)")
         centralManager.connect(next, options: nil)
 
         let workItem = DispatchWorkItem { [weak self] in
@@ -230,6 +298,7 @@ class BluetoothService: NSObject, ObservableObject {
             centralManager.cancelPeripheralConnection(peripheral)
         }
         peripheral = nil
+        connectedCandidate = nil
         connectNextCandidate()
     }
 
@@ -301,6 +370,7 @@ extension BluetoothService: CBCentralManagerDelegate {
         log("连接断开: \(describe(peripheral)), error=\(error?.localizedDescription ?? "-")")
         if isUnlocking && !didStartUnlock && self.peripheral?.identifier == peripheral.identifier {
             self.peripheral = nil
+            self.connectedCandidate = nil
             connectNextCandidate()
         }
     }
@@ -400,8 +470,13 @@ extension BluetoothService: CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         if error == nil {
             if let device = currentDevice {
-                DataService.shared.saveCachedPeripheralId(peripheral.identifier, for: device.id)
-                log("蓝牙写入成功，已缓存 iOS 外设 UUID: \(peripheral.identifier.uuidString)。这只代表指令写入成功，不代表门禁一定已开门")
+                let canTrustCache = connectedCandidate?.matchesCurrentDevice == true || (device.bluetoothName.isEmpty && connectedCandidate?.advertisesMagicService == true)
+                if canTrustCache {
+                    DataService.shared.saveCachedPeripheralId(peripheral.identifier, for: device.id)
+                    log("蓝牙写入成功，已缓存匹配当前门禁的 iOS 外设 UUID: \(peripheral.identifier.uuidString)。这只代表指令写入成功，不代表门禁一定已开门")
+                } else {
+                    log("蓝牙写入成功，但候选未确认匹配当前门禁，不更新缓存: \(peripheral.identifier.uuidString)")
+                }
             }
             finish(true, message: "指令已发送")
         } else {
