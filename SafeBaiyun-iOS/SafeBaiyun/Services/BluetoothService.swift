@@ -12,7 +12,6 @@ class BluetoothService: NSObject, ObservableObject {
         let nameLooksLikeDoor: Bool
         let bluetoothNameMatches: Bool
         let macNameMatches: Bool
-        let isTrustedCached: Bool
         let displayName: String
 
         var matchesCurrentDevice: Bool {
@@ -23,7 +22,6 @@ class BluetoothService: NSObject, ObservableObject {
             var score = rssi
             if bluetoothNameMatches { score += 700 }
             if macNameMatches { score += 600 }
-            if isTrustedCached { score += 500 }
             if advertisesMagicService { score += 250 }
             if advertisesDoorDataService { score += 180 }
             if nameLooksLikeDoor { score += 100 }
@@ -48,7 +46,6 @@ class BluetoothService: NSObject, ObservableObject {
     private var discoveryLogCache: [UUID: String] = [:]
     private var candidatesById: [UUID: Candidate] = [:]
     private var candidates: [Candidate] = []
-    private var cachedPeripheralId: UUID?
     private var connectedCandidate: Candidate?
 
     @Published var isUnlocking = false
@@ -75,12 +72,7 @@ class BluetoothService: NSObject, ObservableObject {
             return
         }
 
-        cachedPeripheralId = DataService.shared.cachedPeripheralId(for: device.id)
-        if let cachedId = cachedPeripheralId {
-            log("存在缓存的 iOS 外设 UUID: \(cachedId.uuidString)。会先扫描确认它属于当前门禁，再优先连接")
-        } else {
-            log("没有缓存的 iOS 外设 UUID，开始扫描")
-        }
+        log("开始扫描门禁广播")
 
         startScan(withServices: nil, label: "nil")
         scheduleScanSettle(after: 0.8)
@@ -111,7 +103,6 @@ class BluetoothService: NSObject, ObservableObject {
         discoveryLogCache.removeAll()
         candidatesById.removeAll()
         candidates.removeAll()
-        cachedPeripheralId = nil
         connectedCandidate = nil
         if let peripheral = peripheral {
             log("重置连接，取消当前设备: \(describe(peripheral))")
@@ -173,23 +164,14 @@ class BluetoothService: NSObject, ObservableObject {
         let nameLooksLikeDoor = displayName.uppercased().hasPrefix("BY")
         let bluetoothNameMatches = matchesBluetoothName(displayName)
         let macNameMatches = matchesDeviceMac(displayName)
-        let isCached = peripheral.identifier == cachedPeripheralId
-        let hasBluetoothTarget = currentDevice.map { !$0.bluetoothName.isEmpty } ?? false
-        let isTrustedCached = isCached && (!hasBluetoothTarget || bluetoothNameMatches)
         let isLikelyDoor = advertisesMagicService || advertisesDoorDataService || nameLooksLikeDoor || bluetoothNameMatches || macNameMatches
         let servicesText = services.map { $0.uuidString }.joined(separator: ",")
-        let signature = "\(isLikelyDoor)-\(localName)-\(advertisesMagicService)-\(advertisesDoorDataService)-\(nameLooksLikeDoor)-\(bluetoothNameMatches)-\(macNameMatches)-\(isCached)-\(isTrustedCached)-\(servicesText)"
+        let signature = "\(isLikelyDoor)-\(localName)-\(advertisesMagicService)-\(advertisesDoorDataService)-\(nameLooksLikeDoor)-\(bluetoothNameMatches)-\(macNameMatches)-\(servicesText)"
 
         let shouldLogDiscovery = discoveryLogCache[peripheral.identifier] != signature
         if shouldLogDiscovery {
             discoveryLogCache[peripheral.identifier] = signature
-            log("发现设备: \(describe(peripheral)), name=\(localName), rssi=\(rssi), magic=\(advertisesMagicService), doorData=\(advertisesDoorDataService), byName=\(nameLooksLikeDoor), btNameMatch=\(bluetoothNameMatches), macMatch=\(macNameMatches), cached=\(isCached), trustedCached=\(isTrustedCached), services=\(servicesText)")
-        }
-
-        if isCached && hasBluetoothTarget && nameLooksLikeDoor && !bluetoothNameMatches && !macNameMatches, let device = currentDevice {
-            log("缓存外设已扫描到，但名称 \(displayName) 与当前门禁 \(device.bluetoothName) 不匹配，已忽略并清除缓存")
-            DataService.shared.clearCachedPeripheral(for: device.id)
-            cachedPeripheralId = nil
+            log("发现设备: \(describe(peripheral)), name=\(localName), rssi=\(rssi), magic=\(advertisesMagicService), doorData=\(advertisesDoorDataService), byName=\(nameLooksLikeDoor), btNameMatch=\(bluetoothNameMatches), macMatch=\(macNameMatches), services=\(servicesText)")
         }
 
         guard isLikelyDoor else {
@@ -207,7 +189,6 @@ class BluetoothService: NSObject, ObservableObject {
             nameLooksLikeDoor: nameLooksLikeDoor,
             bluetoothNameMatches: bluetoothNameMatches,
             macNameMatches: macNameMatches,
-            isTrustedCached: isTrustedCached,
             displayName: displayName
         )
 
@@ -219,12 +200,11 @@ class BluetoothService: NSObject, ObservableObject {
         candidates.removeAll { $0.peripheral.identifier == peripheral.identifier }
         candidates.append(candidate)
 
-        let hasExactTarget = hasBluetoothTarget || (currentDevice.map { !$0.mac.isEmpty } ?? false)
-        if bluetoothNameMatches || macNameMatches || isTrustedCached || (advertisesMagicService && !hasExactTarget) {
+        let hasExactTarget = currentDevice.map { !$0.bluetoothName.isEmpty || !$0.mac.isEmpty } ?? false
+        if bluetoothNameMatches || macNameMatches || (advertisesMagicService && !hasExactTarget) {
+            guard self.peripheral == nil, !didStartUnlock else { return }
             if bluetoothNameMatches {
                 log("发现与 bluetoothName 匹配的门禁广播，立即尝试连接")
-            } else if isTrustedCached {
-                log("发现可信缓存门禁广播，优先尝试连接")
             } else {
                 log(macNameMatches ? "发现与当前 MAC 匹配的门禁广播，立即尝试连接" : "发现门禁主服务广播，立即尝试连接")
             }
@@ -258,9 +238,6 @@ class BluetoothService: NSObject, ObservableObject {
             if $0.macNameMatches != $1.macNameMatches {
                 return $0.macNameMatches && !$1.macNameMatches
             }
-            if $0.isTrustedCached != $1.isTrustedCached {
-                return $0.isTrustedCached && !$1.isTrustedCached
-            }
             if $0.advertisesMagicService != $1.advertisesMagicService {
                 return $0.advertisesMagicService && !$1.advertisesMagicService
             }
@@ -280,7 +257,7 @@ class BluetoothService: NSObject, ObservableObject {
         peripheral = next
         connectedCandidate = nextCandidate
         next.delegate = self
-        log("尝试连接候选: \(describe(next))，match=\(nextCandidate.matchesCurrentDevice), cached=\(nextCandidate.isTrustedCached), rssi=\(nextCandidate.rssi)")
+        log("尝试连接候选: \(describe(next))，match=\(nextCandidate.matchesCurrentDevice), rssi=\(nextCandidate.rssi)")
         centralManager.connect(next, options: nil)
 
         let workItem = DispatchWorkItem { [weak self] in
@@ -461,7 +438,7 @@ extension BluetoothService: CBPeripheralDelegate {
         peripheral.writeValue(Data(encrypted), for: writeChar, type: writeType)
         if writeType == .withoutResponse {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.log("指令已发送，但 writeWithoutResponse 没有系统写入确认，不更新缓存")
+                self?.log("指令已发送，但 writeWithoutResponse 没有系统写入确认")
                 self?.finish(true, message: "指令已发送")
             }
         }
@@ -469,15 +446,7 @@ extension BluetoothService: CBPeripheralDelegate {
 
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         if error == nil {
-            if let device = currentDevice {
-                let canTrustCache = connectedCandidate?.matchesCurrentDevice == true || (device.bluetoothName.isEmpty && connectedCandidate?.advertisesMagicService == true)
-                if canTrustCache {
-                    DataService.shared.saveCachedPeripheralId(peripheral.identifier, for: device.id)
-                    log("蓝牙写入成功，已缓存匹配当前门禁的 iOS 外设 UUID: \(peripheral.identifier.uuidString)。这只代表指令写入成功，不代表门禁一定已开门")
-                } else {
-                    log("蓝牙写入成功，但候选未确认匹配当前门禁，不更新缓存: \(peripheral.identifier.uuidString)")
-                }
-            }
+            log("蓝牙写入成功，指令已发送。这只代表指令写入成功，不代表门禁一定已开门")
             finish(true, message: "指令已发送")
         } else {
             log("写入失败: \(error?.localizedDescription ?? "-")")

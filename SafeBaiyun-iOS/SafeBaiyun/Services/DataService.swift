@@ -5,7 +5,6 @@ class DataService {
 
     private let defaults = UserDefaults.standard
     private let devicesKey = "devices"
-    private let cachedPeripheralPrefix = "cachedPeripheral.v2."
     private let debugModeKey = "debugModeEnabled.v1"
 
     func readDevices() -> [Device] {
@@ -34,7 +33,6 @@ class DataService {
 
     func deleteDevice(_ id: String) {
         saveDevices(readDevices().filter { $0.id != id })
-        defaults.removeObject(forKey: cachedPeripheralPrefix + id)
     }
 
     func moveDeviceUp(_ id: String) {
@@ -69,26 +67,6 @@ class DataService {
         var i = 2
         while existing.contains(where: { $0.name == "\(base)\(i)" }) { i += 1 }
         return "\(base)\(i)"
-    }
-
-    func cachedPeripheralId(for deviceId: String) -> UUID? {
-        guard let value = defaults.string(forKey: cachedPeripheralPrefix + deviceId) else { return nil }
-        return UUID(uuidString: value)
-    }
-
-    func saveCachedPeripheralId(_ peripheralId: UUID, for deviceId: String) {
-        defaults.set(peripheralId.uuidString, forKey: cachedPeripheralPrefix + deviceId)
-    }
-
-    func saveCachedPeripheralIdString(_ value: String, for deviceId: String) -> Bool {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let peripheralId = UUID(uuidString: trimmed) else { return false }
-        saveCachedPeripheralId(peripheralId, for: deviceId)
-        return true
-    }
-
-    func clearCachedPeripheral(for deviceId: String) {
-        defaults.removeObject(forKey: cachedPeripheralPrefix + deviceId)
     }
 
     func isDebugModeEnabled() -> Bool {

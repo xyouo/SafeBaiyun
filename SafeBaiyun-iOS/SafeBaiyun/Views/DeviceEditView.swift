@@ -11,7 +11,6 @@ struct DeviceEditView: View {
     @State private var mac: String
     @State private var key: String
     @State private var bluetoothName: String
-    @State private var cachedPeripheralId: String
 
     init(device: Device?, viewModel: DeviceViewModel, wrapsNavigation: Bool = true, forceNew: Bool = false) {
         self.device = device
@@ -22,19 +21,12 @@ struct DeviceEditView: View {
         _mac = State(initialValue: device?.mac ?? "")
         _key = State(initialValue: device?.key ?? "")
         _bluetoothName = State(initialValue: device?.bluetoothName ?? "")
-        let cachedId = device.flatMap { DataService.shared.cachedPeripheralId(for: $0.id)?.uuidString } ?? ""
-        _cachedPeripheralId = State(initialValue: cachedId)
     }
 
     private var isNew: Bool { forceNew || device == nil }
     private var canSave: Bool {
         ByteUtil.macToBytes(mac).count == 6
             && ByteUtil.hexToBytes(key).count > 0
-            && isCachedPeripheralValid
-    }
-    private var isCachedPeripheralValid: Bool {
-        let trimmed = cachedPeripheralId.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty || UUID(uuidString: trimmed) != nil
     }
 
     var body: some View {
@@ -57,14 +49,6 @@ struct DeviceEditView: View {
                 VariableTextField(label: "macNum", placeholder: "12:34:56:78:9A:BC", text: $mac)
                 VariableTextField(label: "productKey", placeholder: "1234567890ABCDEF", text: $key)
                 VariableTextField(label: "bluetoothName", placeholder: "BY456789ABC", text: $bluetoothName)
-            }
-            Section(header: Text("缓存外设")) {
-                VariableTextField(label: "iOS UUID", placeholder: "缓存外设 UUID", text: $cachedPeripheralId)
-                if !isCachedPeripheralValid {
-                    Text("UUID 格式不正确")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                }
             }
         }
         .listStyle(.insetGrouped)
@@ -96,17 +80,7 @@ struct DeviceEditView: View {
             bluetoothName: finalBluetoothName
         )
         viewModel.saveDevice(newDevice, isNew: isNew)
-        saveCachedPeripheral(for: newDevice)
         dismiss()
-    }
-
-    private func saveCachedPeripheral(for device: Device) {
-        let trimmedCache = cachedPeripheralId.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedCache.isEmpty {
-            DataService.shared.clearCachedPeripheral(for: device.id)
-        } else {
-            _ = DataService.shared.saveCachedPeripheralIdString(trimmedCache, for: device.id)
-        }
     }
 
     private func dismiss() {
