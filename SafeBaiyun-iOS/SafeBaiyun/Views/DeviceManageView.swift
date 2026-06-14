@@ -50,13 +50,8 @@ struct DeviceManageView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(device.name)
                                     .font(.headline)
-                                Text("macNum: \(device.mac)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text("productKey: \(device.key)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
+                                VariableValueRow(label: "macNum", value: device.mac)
+                                VariableValueRow(label: "productKey", value: device.key)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.vertical, 4)
@@ -117,5 +112,28 @@ struct DeviceManageView: View {
     private func editorDidDismiss() {
         activeSheet = nil
         viewModel.loadDevices()
+    }
+}
+
+private struct VariableValueRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(.accentColor)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(Color.accentColor.opacity(0.12))
+                )
+            Text(value)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+        }
     }
 }

@@ -64,25 +64,25 @@ fun OnlineDeviceFetchSheet(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .padding(bottom = 24.dp)
         ) {
-            Text("Online fetch", style = MaterialTheme.typography.titleMedium)
+            Text("在线获取门禁", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = phone,
                 onValueChange = { phone = it },
-                label = { Text("phone") },
+                label = { Text("手机号") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = idCard,
                 onValueChange = { idCard = it.uppercase() },
-                label = { Text("id card") },
+                label = { Text("身份证号") },
                 singleLine = true,
                 visualTransformation = if (showIdCard) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     TextButton(onClick = { showIdCard = !showIdCard }) {
-                        Text(if (showIdCard) "hide" else "show")
+                        Text(if (showIdCard) "隐藏" else "显示")
                     }
                 },
                 modifier = Modifier
@@ -102,9 +102,9 @@ fun OnlineDeviceFetchSheet(
                         runCatching { EntranceGuardApi.fetchDevices(phone, idCard) }
                             .onSuccess {
                                 devices = it
-                                message = if (it.isEmpty()) "No device found" else "Found ${it.size} devices"
+                                message = if (it.isEmpty()) "没有获取到门禁" else "获取到 ${it.size} 个门禁"
                             }
-                            .onFailure { message = it.message ?: "Fetch failed" }
+                            .onFailure { message = it.message ?: "获取失败" }
                         loading = false
                     }
                 }
@@ -116,7 +116,7 @@ fun OnlineDeviceFetchSheet(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("Fetch devices")
+                    Text("获取门禁")
                 }
             }
 
@@ -153,17 +153,17 @@ fun OnlineDeviceFetchSheet(
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis
                                     )
-                                    Text("mac: ${device.mac}", style = MaterialTheme.typography.bodySmall)
+                                    Text("macNum: ${device.mac}", style = MaterialTheme.typography.bodySmall)
                                     Text(
-                                        "key: ${device.key}",
+                                        "productKey: ${device.key}",
                                         style = MaterialTheme.typography.bodySmall,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
                                 TextButton(onClick = { onAddDevice(device) }) {
-                                    Icon(Icons.Default.Add, contentDescription = "add", modifier = Modifier.size(18.dp))
-                                    Text("Add")
+                                    Icon(Icons.Default.Add, contentDescription = "添加", modifier = Modifier.size(18.dp))
+                                    Text("添加")
                                 }
                             }
                         }

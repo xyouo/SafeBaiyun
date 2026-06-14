@@ -53,21 +53,13 @@ struct DeviceEditView: View {
     private var content: some View {
         List {
             Section(header: Text("设备信息")) {
-                TextField("address", text: $name)
-                TextField("macNum，如 12:34:56:78:9A:BC", text: $mac)
-                    .autocapitalization(.allCharacters)
-                    .disableAutocorrection(true)
-                TextField("productKey，如 1234567890ABCDEF", text: $key)
-                    .autocapitalization(.allCharacters)
-                    .disableAutocorrection(true)
-                TextField("bluetoothName，如 BY1A9EDA38F", text: $bluetoothName)
-                    .autocapitalization(.allCharacters)
-                    .disableAutocorrection(true)
+                VariableTextField(label: "address", placeholder: "门禁地址", text: $name)
+                VariableTextField(label: "macNum", placeholder: "12:34:56:78:9A:BC", text: $mac)
+                VariableTextField(label: "productKey", placeholder: "1234567890ABCDEF", text: $key)
+                VariableTextField(label: "bluetoothName", placeholder: "BY456789ABC", text: $bluetoothName)
             }
             Section(header: Text("缓存外设")) {
-                TextField("iOS 外设 UUID", text: $cachedPeripheralId)
-                    .autocapitalization(.allCharacters)
-                    .disableAutocorrection(true)
+                VariableTextField(label: "iOS UUID", placeholder: "缓存外设 UUID", text: $cachedPeripheralId)
                 if !isCachedPeripheralValid {
                     Text("UUID 格式不正确")
                         .font(.caption)
@@ -119,5 +111,29 @@ struct DeviceEditView: View {
 
     private func dismiss() {
         presentationMode.wrappedValue.dismiss()
+    }
+}
+
+private struct VariableTextField: View {
+    let label: String
+    let placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.accentColor)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color.accentColor.opacity(0.12))
+                )
+            TextField(placeholder, text: $text)
+                .autocapitalization(.allCharacters)
+                .disableAutocorrection(true)
+                .multilineTextAlignment(.trailing)
+        }
     }
 }

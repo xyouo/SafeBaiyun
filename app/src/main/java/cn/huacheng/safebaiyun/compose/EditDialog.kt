@@ -19,6 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -49,7 +50,7 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         Column(modifier = Modifier.padding(bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Device manager", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
+            Text("设备管理", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
 
             devices.forEach { device ->
                 Card(
@@ -66,21 +67,21 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(device.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Text("macNum: ${device.mac}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("productKey: ${device.key}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            VariableValueRow(label = "macNum", value = device.mac)
+                            VariableValueRow(label = "productKey", value = device.key)
                         }
                         IconButton(onClick = { editingDevice = device; showEditSheet = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "edit", modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Edit, contentDescription = "编辑", modifier = Modifier.size(20.dp))
                         }
                         IconButton(onClick = { deleteConfirmDevice = device }) {
-                            Icon(Icons.Default.Delete, contentDescription = "delete", modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Delete, contentDescription = "删除", modifier = Modifier.size(20.dp))
                         }
                     }
                 }
             }
 
             if (devices.isEmpty()) {
-                Text("No device yet", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp))
+                Text("暂无设备", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp))
             }
 
             Button(
@@ -89,8 +90,8 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
                     .fillMaxWidth(),
                 onClick = { editingDevice = null; showEditSheet = true }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "add", modifier = Modifier.size(18.dp))
-                Text("Manual add", modifier = Modifier.padding(start = 4.dp))
+                Icon(Icons.Default.Add, contentDescription = "添加", modifier = Modifier.size(18.dp))
+                Text("手动添加", modifier = Modifier.padding(start = 4.dp))
             }
 
             Button(
@@ -99,7 +100,7 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
                     .fillMaxWidth(),
                 onClick = { showOnlineFetchSheet = true }
             ) {
-                Text("Online fetch")
+                Text("在线获取")
             }
         }
     }
@@ -132,17 +133,17 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
     deleteConfirmDevice?.let { device ->
         AlertDialog(
             onDismissRequest = { deleteConfirmDevice = null },
-            title = { Text("Delete device") },
-            text = { Text("Delete ${device.name}?") },
+            title = { Text("删除设备") },
+            text = { Text("确定删除 ${device.name}？") },
             confirmButton = {
                 TextButton(onClick = {
                     DataRepo.deleteDevice(device.id)
                     devices = DataRepo.readDevices()
                     onDevicesChanged()
                     deleteConfirmDevice = null
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text("删除", color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { deleteConfirmDevice = null }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { deleteConfirmDevice = null }) { Text("取消") } }
         )
     }
 }
@@ -160,14 +161,14 @@ private fun DeviceEditSheet(device: Device?, onDismiss: () -> Unit, onSave: (Dev
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         Column(modifier = Modifier.padding(bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(if (isEdit) "Edit device" else "Add device", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
+            Text(if (isEdit) "编辑设备" else "添加设备", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
 
             val fieldModifier = Modifier
                 .padding(8.dp)
                 .fillMaxWidth()
-            OutlinedTextField(modifier = fieldModifier, value = address, onValueChange = { address = it }, label = { Text("address") }, placeholder = { Text("Gate address") })
-            OutlinedTextField(modifier = fieldModifier, value = mac, onValueChange = { mac = it }, label = { Text("mac") }, placeholder = { Text("12:34:56:78:9A:BC") })
-            OutlinedTextField(modifier = fieldModifier, value = key, onValueChange = { key = it }, label = { Text("key") }, placeholder = { Text("123456789ABCDEF0") })
+            OutlinedTextField(modifier = fieldModifier, value = address, onValueChange = { address = it }, label = { Text("address") }, placeholder = { Text("门禁地址") })
+            OutlinedTextField(modifier = fieldModifier, value = mac, onValueChange = { mac = it }, label = { Text("macNum") }, placeholder = { Text("12:34:56:78:9A:BC") })
+            OutlinedTextField(modifier = fieldModifier, value = key, onValueChange = { key = it }, label = { Text("productKey") }, placeholder = { Text("1234567890ABCDEF") })
 
             Button(
                 modifier = Modifier.padding(8.dp),
@@ -176,7 +177,32 @@ private fun DeviceEditSheet(device: Device?, onDismiss: () -> Unit, onSave: (Dev
                     onSave(Device(id = device?.id ?: UUID.randomUUID().toString(), name = finalAddress, mac = mac, key = key))
                 },
                 enabled = mac.isNotBlank() && key.isNotBlank()
-            ) { Text(if (isEdit) "Save" else "Add") }
+            ) { Text(if (isEdit) "保存" else "添加") }
         }
+    }
+}
+
+@Composable
+private fun VariableValueRow(label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Surface(
+            shape = MaterialTheme.shapes.extraSmall,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            contentColor = MaterialTheme.colorScheme.primary
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+            )
+        }
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 6.dp)
+        )
     }
 }
