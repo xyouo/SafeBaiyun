@@ -48,7 +48,7 @@ struct DeviceManageView: View {
                             activeSheet = .edit(device)
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("address: \(device.name)")
+                                Text(device.name)
                                     .font(.headline)
                                 Text("mac: \(device.mac)")
                                     .font(.caption)
