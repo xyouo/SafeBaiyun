@@ -50,10 +50,10 @@ struct DeviceManageView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(device.name)
                                     .font(.headline)
-                                Text("mac: \(device.mac)")
+                                Text("macNum: \(device.mac)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                Text("key: \(device.key)")
+                                Text("productKey: \(device.key)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
