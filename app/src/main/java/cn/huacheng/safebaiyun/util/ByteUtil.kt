@@ -34,5 +34,21 @@ object ByteUtil {
         return result
     }
 
+    fun hexToBytesOrNull(hexString: String): ByteArray? {
+        val normalized = hexString.trim().filter { it.isDigit() || it.uppercaseChar() in 'A'..'F' }
+        if (normalized.isEmpty() || normalized.length % 2 != 0) return null
+        return runCatching { hexToBytes(normalized) }.getOrNull()
+    }
+
+    fun macToBytes(mac: String): ByteArray {
+        return hexToBytesOrNull(mac) ?: byteArrayOf()
+    }
+
+    fun normalizeMac(mac: String): String {
+        val hex = mac.uppercase().filter { it.isDigit() || it in 'A'..'F' }
+        if (hex.length != 12) return mac.trim().uppercase()
+        return hex.chunked(2).joinToString(":")
+    }
+
 }
 

@@ -1,10 +1,13 @@
 package cn.huacheng.safebaiyun.compose
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -19,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -40,6 +44,7 @@ import java.util.UUID
 fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
     var devices by remember { mutableStateOf(DataRepo.readDevices()) }
     var showEditSheet by remember { mutableStateOf(false) }
+    var showOnlineFetchSheet by remember { mutableStateOf(false) }
     var editingDevice by remember { mutableStateOf<Device?>(null) }
     var deleteConfirmDevice by remember { mutableStateOf<Device?>(null) }
 
@@ -52,17 +57,21 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
 
             devices.forEach { device ->
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(device.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("MAC: " + device.mac, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Key: " + device.key, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Text(device.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            VariableValueRow(label = "macNum", value = device.mac)
+                            VariableValueRow(label = "productKey", value = device.key)
                         }
                         IconButton(onClick = { editingDevice = device; showEditSheet = true }) {
                             Icon(Icons.Default.Edit, contentDescription = "编辑", modifier = Modifier.size(20.dp))
@@ -75,41 +84,68 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
             }
 
             if (devices.isEmpty()) {
-                Text("暂无设备，点击下方添加", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp))
+                Text("暂无设备", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp))
             }
 
             Button(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .fillMaxWidth(),
                 onClick = { editingDevice = null; showEditSheet = true }
             ) {
                 Icon(Icons.Default.Add, contentDescription = "添加", modifier = Modifier.size(18.dp))
-                Text("添加设备", modifier = Modifier.padding(start = 4.dp))
+                Text("手动添加", modifier = Modifier.padding(start = 4.dp))
+            }
+
+            Button(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .fillMaxWidth(),
+                onClick = { showOnlineFetchSheet = true }
+            ) {
+                Text("在线获取")
             }
         }
     }
 
     if (showEditSheet) {
-        DeviceEditSheet(device = editingDevice, onDismiss = { showEditSheet = false; editingDevice = null },
+        DeviceEditSheet(
+            device = editingDevice,
+            onDismiss = { showEditSheet = false; editingDevice = null },
             onSave = { device ->
-                if (editingDevice != null) DataRepo.updateDevice(device)
-                else DataRepo.addDevice(device)
+                if (editingDevice != null) DataRepo.updateDevice(device) else DataRepo.addDevice(device)
                 devices = DataRepo.readDevices()
                 onDevicesChanged()
-                showEditSheet = false; editingDevice = null
-            })
+                showEditSheet = false
+                editingDevice = null
+            }
+        )
+    }
+
+    if (showOnlineFetchSheet) {
+        OnlineDeviceFetchSheet(
+            onDismiss = { showOnlineFetchSheet = false },
+            onAddDevice = { remoteDevice ->
+                DataRepo.addDevice(remoteDevice.toDevice())
+                devices = DataRepo.readDevices()
+                onDevicesChanged()
+            }
+        )
     }
 
     deleteConfirmDevice?.let { device ->
         AlertDialog(
             onDismissRequest = { deleteConfirmDevice = null },
-            title = { Text("确认删除") },
-            text = { Text("确定要删除「" + device.name + "」吗？") },
-            confirmButton = { TextButton(onClick = {
-                DataRepo.deleteDevice(device.id)
-                devices = DataRepo.readDevices()
-                onDevicesChanged()
-                deleteConfirmDevice = null
-            }) { Text("删除", color = MaterialTheme.colorScheme.error) } },
+            title = { Text("删除设备") },
+            text = { Text("确定删除 ${device.name}？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    DataRepo.deleteDevice(device.id)
+                    devices = DataRepo.readDevices()
+                    onDevicesChanged()
+                    deleteConfirmDevice = null
+                }) { Text("删除", color = MaterialTheme.colorScheme.error) }
+            },
             dismissButton = { TextButton(onClick = { deleteConfirmDevice = null }) { Text("取消") } }
         )
     }
@@ -119,7 +155,7 @@ fun DeviceListSheet(onDismiss: () -> Unit, onDevicesChanged: () -> Unit = {}) {
 @Composable
 private fun DeviceEditSheet(device: Device?, onDismiss: () -> Unit, onSave: (Device) -> Unit) {
     val isEdit = device != null
-    var name by remember { mutableStateOf(device?.name ?: "") }
+    var address by remember { mutableStateOf(device?.name ?: "") }
     var mac by remember { mutableStateOf(device?.mac ?: "") }
     var key by remember { mutableStateOf(device?.key ?: "") }
 
@@ -130,19 +166,51 @@ private fun DeviceEditSheet(device: Device?, onDismiss: () -> Unit, onSave: (Dev
         Column(modifier = Modifier.padding(bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(if (isEdit) "编辑设备" else "添加设备", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
 
-            val modifier = Modifier.padding(8.dp).fillMaxWidth()
-            OutlinedTextField(modifier = modifier, value = name, onValueChange = { name = it }, label = { Text("设备名称") }, placeholder = { Text("如：大门、公司门") })
-            OutlinedTextField(modifier = modifier, value = mac, onValueChange = { mac = it }, label = { Text("MAC 地址") }, placeholder = { Text("如：12:34:56:78:9A:BC") })
-            OutlinedTextField(modifier = modifier, value = key, onValueChange = { key = it }, label = { Text("加密 Key") }, placeholder = { Text("如：123456789ABCDEFG") })
+            val fieldModifier = Modifier
+                .padding(8.dp)
+                .fillMaxWidth()
+            OutlinedTextField(modifier = fieldModifier, value = address, onValueChange = { address = it }, label = { Text("address") }, placeholder = { Text("门禁地址") })
+            OutlinedTextField(modifier = fieldModifier, value = mac, onValueChange = { mac = it }, label = { Text("macNum") }, placeholder = { Text("12:34:56:78:9A:BC") })
+            OutlinedTextField(modifier = fieldModifier, value = key, onValueChange = { key = it }, label = { Text("productKey") }, placeholder = { Text("1234567890ABCDEF") })
 
             Button(
                 modifier = Modifier.padding(8.dp),
                 onClick = {
-                    val finalName = if (name.isNotBlank()) name else DataRepo.generateUniqueName()
-                    onSave(Device(id = device?.id ?: UUID.randomUUID().toString(), name = finalName, mac = mac, key = key))
+                    val finalAddress = if (address.isNotBlank()) address else DataRepo.generateUniqueName()
+                    onSave(Device(id = device?.id ?: UUID.randomUUID().toString(), name = finalAddress, mac = mac, key = key))
                 },
                 enabled = mac.isNotBlank() && key.isNotBlank()
-            ) { Text(if (isEdit) "保存修改" else "添加") }
+            ) { Text(if (isEdit) "保存" else "添加") }
         }
+    }
+}
+
+@Composable
+private fun VariableValueRow(label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier.width(88.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.extraSmall,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 0.dp)
+        )
     }
 }
