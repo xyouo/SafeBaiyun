@@ -96,18 +96,15 @@ private struct VariableTextField: View {
     var body: some View {
         HStack(spacing: 10) {
             Text(label)
-                .font(.caption.weight(.semibold))
-                .foregroundColor(.accentColor)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color.accentColor.opacity(0.12))
-                )
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(.secondary)
+                .frame(width: 86, alignment: .leading)
             TextField(placeholder, text: $text)
                 .autocapitalization(.allCharacters)
                 .disableAutocorrection(true)
                 .multilineTextAlignment(.trailing)
+                .foregroundColor(.primary)
         }
+        .padding(.vertical, 2)
     }
 }

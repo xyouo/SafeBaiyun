@@ -47,10 +47,13 @@ struct OnlineDeviceFetchView: View {
                             if isLoading {
                                 ProgressView()
                             }
-                            Text(isLoading ? "获取中" : "获取门禁")
+                            Text(isLoading ? "获取中…" : "获取门禁")
+                                .fontWeight(.semibold)
                             Spacer()
                         }
                     }
+                    .buttonStyle(.borderedProminent)
+                    .listRowInsets(EdgeInsets())
                     .disabled(isLoading || phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || idCard.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
 
