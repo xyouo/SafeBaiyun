@@ -67,21 +67,13 @@ jobs:
           zip -qry "$ipa_name" Payload
           echo "path=$ipa_name" >> "$GITHUB_OUTPUT"
 
-      - name: Upload IPA to v3.0 release
+      - name: Upload IPA to per-build iOS release
         run: |
-          gh release view v3.0 -R "${{ github.repository }}" >/dev/null 2>&1 || \
-            gh release create v3.0 -R "${{ github.repository }}" --title "v3.0" --notes "SafeBaiyun v3.0"
-          gh release upload v3.0 "${{ steps.ipa.outputs.path }}" -R "${{ github.repository }}" --clobber
-          gh release view v3.0 -R "${{ github.repository }}" --json assets \
-            --jq '.assets | map(select(.name | test("^SafeBaiyun-3\\.0\\.[0-9]+-debug\\.ipa$"))) | .[].name' \
-            | while read -r asset; do
-                [ -n "$asset" ] && gh release delete-asset v3.0 "$asset" -R "${{ github.repository }}" -y
-              done
-          gh release view v3.0 -R "${{ github.repository }}" --json assets \
-            --jq '.assets | map(select(.name | test("^SafeBaiyun-3\\.0\\.[0-9]+\\.ipa$"))) | sort_by(.createdAt) | reverse | .[1:] | .[].name' \
-            | while read -r asset; do
-                [ -n "$asset" ] && gh release delete-asset v3.0 "$asset" -R "${{ github.repository }}" -y
-              done
+          tag="ios-${{ steps.version.outputs.ver }}"
+          title="iOS ${{ steps.version.outputs.ver }}"
+          gh release create "$tag" "${{ steps.ipa.outputs.path }}" \
+            -R "${{ github.repository }}" --title "$title" \
+            --notes "SafeBaiyun iOS build ${{ steps.version.outputs.ver }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
