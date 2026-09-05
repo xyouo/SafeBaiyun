@@ -54,20 +54,14 @@ jobs:
         run: |
           mv app/build/outputs/apk/debug/app-debug.apk "app/build/outputs/apk/debug/SafeBaiyun-${{ steps.version.outputs.ver }}.apk"
 
-      - name: Upload APK to v3.0 release
+      - name: Upload APK to per-build Android release
         run: |
-          gh release view v3.0 -R ${{ github.repository }} >/dev/null 2>&1 || \
-            gh release create v3.0 -R ${{ github.repository }} --title "v3.0" --notes "SafeBaiyun v3.0"
-          gh release upload v3.0 app/build/outputs/apk/debug/SafeBaiyun-${{ steps.version.outputs.ver }}.apk -R ${{ github.repository }} --clobber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Keep latest APK asset
-        run: |
-          gh release view v3.0 -R ${{ github.repository }} --json assets \
-            --jq '.assets | map(select(.name | test("^SafeBaiyun-3\\.0\\.[0-9]+\\.apk$"))) | sort_by(.createdAt) | reverse | .[1:] | .[].name' \
-            | while read -r asset; do
-                [ -n "$asset" ] && gh release delete-asset v3.0 "$asset" -R ${{ github.repository }} -y
-              done
+          tag="android-${{ steps.version.outputs.ver }}"
+          title="Android ${{ steps.version.outputs.ver }}"
+          gh release create "$tag" \
+            app/build/outputs/apk/debug/SafeBaiyun-${{ steps.version.outputs.ver }}.apk \
+            -R ${{ github.repository }} --title "$title" \
+            --notes "SafeBaiyun Android build ${{ steps.version.outputs.ver }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
