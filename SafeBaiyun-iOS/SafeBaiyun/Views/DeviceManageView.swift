@@ -37,15 +37,10 @@ struct DeviceManageView: View {
                 }
 
                 if viewModel.devices.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "lock.open")
-                            .font(.system(size: 28, weight: .medium))
-                            .foregroundColor(.secondary)
-                        Text("暂无设备，点右上角添加")
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
+                    Text("暂无设备，点右上角添加")
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
                 } else {
                     ForEach(viewModel.devices) { device in
                         Button {
@@ -72,12 +67,8 @@ struct DeviceManageView: View {
             .navigationTitle("设备管理")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItemGroup(placement: .navigationBarLeading) {
-                    Button(action: { presentationMode.wrappedValue.dismiss() }) {
-                        Image(systemName: "xmark")
-                            .font(.body.weight(.semibold))
-                    }
-                    EditButton()
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("完成") { presentationMode.wrappedValue.dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -130,16 +121,24 @@ private struct VariableValueRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Text(label)
-                .font(.caption2.weight(.semibold))
-                .foregroundColor(.secondary)
-                .frame(width: 84, alignment: .leading)
+            HStack {
+                Text(label)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(.accentColor)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.12))
+                    )
+                Spacer(minLength: 0)
+            }
+            .frame(width: 78, alignment: .leading)
             Text(value)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, 1)
     }
 }

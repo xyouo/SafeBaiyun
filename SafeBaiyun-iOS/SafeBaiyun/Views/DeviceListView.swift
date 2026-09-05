@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct DeviceListView: View {
     @StateObject private var viewModel = DeviceViewModel()
@@ -12,27 +11,18 @@ struct DeviceListView: View {
             ZStack {
                 List {
                     if viewModel.devices.isEmpty {
-                        VStack(spacing: 12) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.accentColor.opacity(0.12))
-                                    .frame(width: 84, height: 84)
-                                Image(systemName: "lock.open")
-                                    .font(.system(size: 34, weight: .medium))
-                                    .foregroundColor(.accentColor)
-                            }
-                            VStack(spacing: 4) {
-                                Text("暂无门禁设备")
-                                    .font(.headline)
-                                Text("点右上角齿轮进入管理，添加你的第一个门禁")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                            }
+                        VStack(spacing: 10) {
+                            Image(systemName: "lock.open")
+                                .font(.system(size: 34, weight: .medium))
+                                .foregroundColor(.secondary)
+                            Text("暂无门禁设备")
+                                .font(.headline)
+                            Text("点右上角添加设备")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 48)
-                        .padding(.horizontal, 24)
+                        .padding(.vertical, 42)
                         .listRowBackground(Color.clear)
                     } else {
                         ForEach(viewModel.devices) { device in
@@ -83,7 +73,7 @@ struct DeviceListView: View {
             }
             .onReceive(viewModel.$isUnlocking) { isUnlocking in
                 if isUnlocking, activeSheet != .debugLog {
-                    withAnimation(appearedAnimation) {
+                    withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
                         unlockOverlay = .opening
                     }
                 }
@@ -102,7 +92,7 @@ struct DeviceListView: View {
 
     private func showUnlockResult(_ message: String) {
         let isSuccess = message.contains("已发送")
-        withAnimation(appearedAnimation) {
+        withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
             unlockOverlay = isSuccess ? .success(message) : .failure(message)
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.7) {
@@ -111,13 +101,6 @@ struct DeviceListView: View {
                 unlockOverlay = nil
             }
         }
-    }
-
-    private var appearedAnimation: Animation {
-        if UIAccessibility.isReduceMotionEnabled {
-            return .easeInOut(duration: 0.22)
-        }
-        return .spring(response: 0.28, dampingFraction: 0.84, blendDuration: 0.2)
     }
 
     private func sheetDidDismiss() {
@@ -183,14 +166,10 @@ struct UnlockOverlayView: View {
         .padding(.vertical, 18)
         .frame(width: 176, height: 148)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.regularMaterial)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.systemBackground))
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-        )
-        .shadow(color: Color.black.opacity(0.16), radius: 24, y: 12)
+        .shadow(color: Color.black.opacity(0.18), radius: 22, x: 0, y: 10)
     }
 
     @ViewBuilder
@@ -218,8 +197,8 @@ struct DeviceCard: View {
     @State private var showEdit = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(device.name)
                     .font(.headline.weight(.semibold))
                     .foregroundColor(.primary)
@@ -229,7 +208,46 @@ struct DeviceCard: View {
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .layoutPriority(1)
 
-            unlockButton
+            HStack(spacing: 4) {
+                if viewModel.devices.count > 1,
+                   let idx = viewModel.devices.firstIndex(where: { $0.id == device.id }) {
+                    Button { viewModel.moveUp(device.id) } label: {
+                        Image(systemName: "chevron.up")
+                            .font(.body.weight(.semibold))
+                            .frame(width: 30, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .disabled(idx == 0 || viewModel.isUnlocking)
+
+                    Button { viewModel.moveDown(device.id) } label: {
+                        Image(systemName: "chevron.down")
+                            .font(.body.weight(.semibold))
+                            .frame(width: 30, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .disabled(idx == viewModel.devices.count - 1 || viewModel.isUnlocking)
+                }
+            }
+            .frame(width: 68, height: 44)
+            .buttonStyle(.borderless)
+
+            Button(action: { viewModel.unlock(device) }) {
+                HStack(spacing: 5) {
+                    Image(systemName: "lock.open")
+                        .font(.callout.weight(.semibold))
+                    Text("开门")
+                        .font(.callout.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
+                }
+                .frame(width: 76, height: 38)
+                .background(Color.accentColor)
+                .foregroundColor(.white)
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isUnlocking)
+            .opacity(viewModel.isUnlocking ? 0.55 : 1)
         }
         .padding(.vertical, 7)
         .contextMenu {
@@ -242,26 +260,6 @@ struct DeviceCard: View {
         .sheet(isPresented: $showEdit, onDismiss: editDidDismiss) {
             DeviceEditView(device: device, viewModel: viewModel)
         }
-    }
-
-    private var unlockButton: some View {
-        Button(action: { viewModel.unlock(device) }) {
-            HStack(spacing: 5) {
-                Image(systemName: "lock.open")
-                    .font(.callout.weight(.semibold))
-                Text("开门")
-                    .font(.callout.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.9)
-            }
-            .frame(width: 76, height: 38)
-            .background(Color.accentColor)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-        }
-        .buttonStyle(.plain)
-        .disabled(viewModel.isUnlocking)
-        .opacity(viewModel.isUnlocking ? 0.5 : 1)
     }
 
     private func editDidDismiss() {
